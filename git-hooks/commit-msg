@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+
+import re
+import sys
+import subprocess
+from typing import Optional, Tuple
+
+# Conventional Commits types
+TYPES = {
+    'feat': 'A new feature',
+    'fix': 'A bug fix',
+    'docs': 'Documentation only changes',
+    'style': 'Changes that do not affect the meaning of the code',
+    'refactor': 'A code change that neither fixes a bug nor adds a feature',
+    'perf': 'A code change that improves performance',
+    'test': 'Adding missing tests or correcting existing tests',
+    'chore': 'Changes to the build process or auxiliary tools',
+    'ci': 'Changes to CI configuration files and scripts'
+}
+
+# Project-specific scopes
+SCOPES = {
+    'cli': 'Command-line interface changes',
+    'config': 'Configuration changes',
+    'api': 'API-related changes',
+    'container': 'Container-related changes',
+    'deps': 'Dependency updates',
+    'docs': 'Documentation changes'
+}
+
+def get_commit_message() -> str:
+    """Read the commit message from the file."""
+    with open(sys.argv[1], 'r') as f:
+        return f.read().strip()
+
+def write_commit_message(message: str) -> None:
+    """Write the commit message back to the file."""
+    with open(sys.argv[1], 'w') as f:
+        f.write(message)
+
+def validate_commit_message(message: str) -> Tuple[bool, Optional[str]]:
+    """
+    Validate the commit message against Conventional Commits standards.
+    Returns (is_valid, error_message).
+    """
+    # Skip validation for merge commits
+    if message.startswith('Merge '):
+        return True, None
+
+    # Check for conventional commit format
+    pattern = r'^(feat|fix|docs|style|refactor|perf|test|chore|ci)(\([a-z-]+\))?: .+'
+    if not re.match(pattern, message):
+        return False, (
+            "Commit message does not follow Conventional Commits format.\n"
+            "Format: <type>(<scope>): <description>\n"
+            "Example: feat(cli): add new command for schedule management"
+        )
+
+    # Extract type and scope
+    match = re.match(r'^(feat|fix|docs|style|refactor|perf|test|chore|ci)(?:\(([a-z-]+)\))?:', message)
+    if not match:
+        return False, "Invalid commit message format"
+
+    commit_type, scope = match.groups()
+
+    # Validate type
+    if commit_type not in TYPES:
+        return False, f"Invalid type: {commit_type}\nValid types: {', '.join(TYPES.keys())}"
+
+    # Validate scope if present
+    if scope and scope not in SCOPES:
+        return False, f"Invalid scope: {scope}\nValid scopes: {', '.join(SCOPES.keys())}"
+
+    # Check description length
+    description = message.split(':', 1)[1].strip()
+    if len(description) < 10:
+        return False, "Description is too short. Please provide a more detailed description."
+
+    if len(description) > 72:
+        return False, "Description is too long. Please keep it under 72 characters."
+
+    return True, None
+
+def get_user_input(prompt: str) -> str:
+    """Get user input with a prompt."""
+    return input(prompt).strip()
+
+def main() -> None:
+    # Read the commit message
+    commit_message = get_commit_message()
+
+    # Validate the message
+    is_valid, error_message = validate_commit_message(commit_message)
+
+    if not is_valid:
+        print("\nError:", error_message)
+        print("\nCurrent commit message:")
+        print(commit_message)
+        
+        while True:
+            choice = get_user_input("\nWould you like to (e)dit the message, (a)bort the commit, or (f)orce the commit? [e/a/f]: ").lower()
+            
+            if choice == 'e':
+                # Open editor to edit the message
+                subprocess.run(['git', 'commit', '--amend', '--no-edit'])
+                # Re-read the message and validate again
+                commit_message = get_commit_message()
+                is_valid, error_message = validate_commit_message(commit_message)
+                if is_valid:
+                    break
+                print("\nError:", error_message)
+            elif choice == 'a':
+                print("Commit aborted.")
+                sys.exit(1)
+            elif choice == 'f':
+                print("Commit forced despite validation errors.")
+                break
+            else:
+                print("Invalid choice. Please choose 'e', 'a', or 'f'.")
+
+if __name__ == '__main__':
+    main() 
