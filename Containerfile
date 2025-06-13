@@ -1,40 +1,49 @@
-# Use Fedora as the base image
-FROM registry.fedoraproject.org/fedora:latest
+# Copyright 2025 John Casey
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+FROM registry.fedoraproject.org/fedora:41
 
-# Install Python and pip
+# Install Python and build dependencies
 RUN dnf -y update && \
-    dnf -y install python3 python3-pip && \
-    dnf clean all
+    dnf -y install \
+    python3.11 \
+    python3.11-pip \
+    python3.11-devel \
+    gcc \
+    && dnf clean all
 
-# Create a non-root user
-RUN useradd -m -s /bin/bash myshift
+# Set Python 3.11 as default
+RUN alternatives --set python3 /usr/bin/python3.11
 
-# Create directory for configuration
-RUN mkdir -p /etc/myshift && \
-    chown -R myshift:myshift /etc/myshift
+# Create and set working directory
+WORKDIR /app
 
-# Switch to non-root user
-USER myshift
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
 
-# Set working directory
-WORKDIR /home/myshift
+# Install Python dependencies
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy the project files
-COPY --chown=myshift:myshift . /home/myshift/myshift/
+# Copy application code
+COPY myshift/ ./myshift/
+COPY setup.py .
 
-# Install myshift in development mode
-RUN cd /home/myshift/myshift && \
-    pip3 install --user -e .
+# Install the application
+RUN pip3 install -e .
 
-# Add myshift to PATH
-ENV PATH="/home/myshift/.local/bin:${PATH}"
+# Set the entrypoint
+ENTRYPOINT ["myshift"]
 
-# Set the entry point to the myshift REPL
-ENTRYPOINT ["myshift", "repl"]
-
-# Document the volume mount point for configuration
-VOLUME ["/etc/myshift/spre-config.yaml"] 
+# Default command (can be overridden)
+CMD ["--help"] 
