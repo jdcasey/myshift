@@ -42,5 +42,5 @@ jobs:
           image: ${{ steps.build-image.outputs.image }}
           tags: ${{ steps.build-image.outputs.tags }}
           registry: quay.io/jdcasey
-          username: ${{ secrets.QUAY_BOTUSER }}
+          username: ${{ secrets.QUAY_BOT_USER }}
           password: ${{ secrets.QUAY_BOT_PASSWORD }}
