@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM registry.fedoraproject.org/fedora:41
+FROM registry.fedoraproject.org/fedora-minimal:41
 
 # Install Python and build dependencies
-RUN dnf -y update && \
-    dnf -y install \
+RUN microdnf -y update && \
+    microdnf -y install \
     python3 \
     python3-pip \
     python3-devel \
     python3-build \
     python3-wheel \
-    && dnf clean all
+    && microdnf clean all
 
 # Create and set working directory
 WORKDIR /app
