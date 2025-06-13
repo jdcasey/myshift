@@ -1,0 +1,17 @@
+[project]
+name = "myshift"
+version = "0.1.0"
+description = "PagerDuty schedule management CLI tools."
+authors = [
+    { name = "John Casey", email = "jdcasey@commonjava.org" }
+]
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "pdpyras",
+    "pyyaml",
+    "cmd2"
+]
+
+[project.scripts]
+myshift = "myshift.__main__:main" 

@@ -1,0 +1,50 @@
+name: Build and Push Container
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: quay.io
+  IMAGE_NAME: jdcasey/myshift
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Buildah
+        uses: redhat-actions/buildah-setup@v2
+        with:
+          buildah-version: latest
+
+      - name: Log in to Quay.io
+        uses: redhat-actions/buildah-login@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
+      - name: Build container image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          containerfiles: |
+            ./Containerfile
+          tags: latest
+          oci: true
+
+      - name: Push container image
+        uses: redhat-actions/buildah-push@v2
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: latest
+          format: oci
+          destination: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} 
