@@ -75,12 +75,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Buildah
-        uses: redhat-actions/buildah-setup@v2
-        with:
-          buildah-version: latest
-
-      - name: Build container
+      - name: Build container image
+        id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
           image: myshift
@@ -88,11 +84,12 @@ jobs:
             ./Containerfile
           tags: pr-check
           oci: true
+          oci-path: ./myshift.tar
 
       - name: Run container security scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'myshift:pr-check'
+          input: ./myshift.tar
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
