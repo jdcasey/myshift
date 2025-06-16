@@ -12,6 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Main entry point for the myshift command-line tool.
+
+This module provides the command-line interface for myshift, handling:
+- Command-line argument parsing
+- Sub-command routing
+- Help text generation
+
+Available sub-commands:
+- override: Override PagerDuty schedule rotations
+- upcoming: Show upcoming on-call shifts
+- plan: Show all on-call shifts
+- next: Show next on-call shift
+- repl: Start interactive REPL
+"""
+
 import argparse
 import sys
 from typing import Optional, List, Any
@@ -22,6 +37,23 @@ from myshift.repl import repl_main
 from myshift.next import next_main
 
 def main() -> None:
+    """Main entry point for the myshift CLI tool.
+    
+    This function:
+    1. Parses command-line arguments
+    2. Routes to appropriate sub-command handler
+    3. Handles help text generation
+    
+    Sub-commands:
+        override: Override PagerDuty schedule rotations
+        upcoming: Show upcoming on-call shifts for a user
+        plan: Show all on-call shifts for the coming N weeks
+        next: Show the next on-call shift for a user
+        repl: Start an interactive REPL for myshift commands
+    
+    Raises:
+        SystemExit: If invalid command is provided
+    """
     parser = argparse.ArgumentParser(description='MyShift CLI tool')
     subparsers = parser.add_subparsers(dest='command', required=True)
 

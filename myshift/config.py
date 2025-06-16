@@ -12,6 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Configuration management for the myshift tool.
+
+This module handles:
+- Configuration file discovery and loading
+- Configuration validation
+- Sample configuration generation
+
+The configuration can be stored in multiple locations:
+- Linux: $XDG_CONFIG_HOME/myshift.yaml or ~/.config/myshift.yaml
+- macOS: ~/Library/Application Support/myshift.yaml
+"""
+
 import os
 import sys
 from typing import Dict, Any, List, Optional
@@ -20,7 +32,16 @@ from pathlib import Path
 import argparse
 
 def get_config_paths() -> List[Path]:
-    """Get the list of possible configuration file paths in order of precedence."""
+    """Get the list of possible configuration file paths in order of precedence.
+    
+    The paths are checked in the following order:
+    1. $XDG_CONFIG_HOME/myshift.yaml (Linux)
+    2. ~/.config/myshift.yaml (Linux)
+    3. ~/Library/Application Support/myshift.yaml (macOS)
+    
+    Returns:
+        List of Path objects representing possible config file locations
+    """
     paths = []
     
     # Add XDG config path for Linux
@@ -35,7 +56,19 @@ def get_config_paths() -> List[Path]:
     return paths
 
 def load_config() -> Dict[str, Any]:
-    """Load configuration from the first available config file."""
+    """Load configuration from the first available config file.
+    
+    The configuration file should be a YAML file containing:
+    - pagerduty_token: Required API token for PagerDuty
+    - my_user: Optional user ID or email for the current user
+    - schedule_id: Optional default schedule ID
+    
+    Returns:
+        Configuration dictionary
+        
+    Raises:
+        SystemExit: If no config file is found or if there's an error loading the file
+    """
     for path in get_config_paths():
         if path.exists():
             try:
@@ -68,7 +101,19 @@ token: "your-pagerduty-token"
 """)
 
 def validate_config(config: Dict[str, Any]) -> None:
-    """Validate the configuration parameters."""
+    """Validate the configuration parameters.
+    
+    Checks for:
+    - Presence of required pagerduty_token
+    - Valid format of my_user (if present)
+    - Valid format of schedule_id (if present)
+    
+    Args:
+        config: Configuration dictionary to validate
+        
+    Raises:
+        SystemExit: If any validation fails
+    """
     if not config.get('token'):
         print("Error: 'token' is required in configuration", file=sys.stderr)
         sys.exit(1)
@@ -84,7 +129,7 @@ def validate_config(config: Dict[str, Any]) -> None:
     if schedule_id and not isinstance(schedule_id, str):
         print("Error: 'schedule_id' must be a string", file=sys.stderr)
         sys.exit(1)
-    
+
 def config_main(args: Optional[List[str]] = None) -> None:
     """Handle the config sub-command."""
     parser = argparse.ArgumentParser(description='Manage MyShift configuration.')

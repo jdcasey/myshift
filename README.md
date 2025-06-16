@@ -1,6 +1,6 @@
 # myshift
 
-PagerDuty schedule management CLI tools.
+A command-line tool for managing on-call schedules in PagerDuty.
 
 ## Installation
 
@@ -30,24 +30,37 @@ pip install myshift
 
 ## Configuration
 
-The tool requires a configuration file. You can generate a sample configuration file by running:
-
-```bash
-myshift override --print-sample-config
-```
-
-This will print a sample `myshift.yaml` to standard output. Save this file to one of the following standard locations:
+Create a `myshift.yaml` file in one of the following standard locations:
 
 ### Linux
-- `/etc/myshift.yaml`
-- `~/.config/myshift.yaml`
-- `./myshift.yaml`
+- `$XDG_CONFIG_HOME/myshift.yaml` (if XDG_CONFIG_HOME is set)
+- `~/.config/myshift.yaml` (default if XDG_CONFIG_HOME is not set)
 
 ### macOS
-- `/Library/Application Support/myshift.yaml`
 - `~/Library/Application Support/myshift.yaml`
-- `~/.config/myshift.yaml`
-- `./myshift.yaml`
+
+You can generate a sample configuration file by running:
+```bash
+myshift config --print
+```
+
+The configuration file should have the following structure:
+
+```yaml
+# PagerDuty API token
+token: "your-pagerduty-token"
+
+# Default schedule ID (optional)
+# schedule_id: "your-default-schedule-id"
+
+# Your PagerDuty user ID or email (optional)
+# This will be used when no --user-id or --user-email is provided
+# my_user: "your-email@example.com"  # or "your-user-id"
+```
+
+- `token`: Your PagerDuty API token (required)
+- `schedule_id`: The ID of your PagerDuty schedule (optional)
+- `my_user`: Your PagerDuty user ID or email address (optional)
 
 ## Usage
 
@@ -61,77 +74,62 @@ podman run -it --rm -v /path/to/myshift.yaml:/etc/myshift.yaml myshift
 docker run -it --rm -v /path/to/myshift.yaml:/etc/myshift.yaml myshift
 ```
 
-**NOTE::** When you run in container mode, the `repl` command will be used.
+**NOTE:** When you run in container mode, the `repl` command will be used.
 
 ### Command Line Usage
 
-```bash
-myshift <sub-command> --help
-```
-
-## Git Hooks
-
-This project includes git hooks to enforce commit message standards. The hooks are stored in the `git-hooks` directory and can be installed using one of the following methods:
-
-### Automatic Installation
-
-Run the following command in the project root:
+#### Show Next On-Call Shift
 
 ```bash
-git config core.hooksPath git-hooks
+myshift next [schedule_id] [--user-id USER_ID | --user-email USER_EMAIL]
 ```
 
-### Manual Installation
+Shows your next on-call shift. If no user is specified, uses the `my_user` from your configuration.
 
-Copy the hooks from the `git-hooks` directory to your `.git/hooks` directory:
+#### Show Upcoming On-Call Shifts
 
 ```bash
-cp git-hooks/* .git/hooks/
-chmod +x .git/hooks/*
+myshift upcoming [schedule_id] [--user-id USER_ID | --user-email USER_EMAIL] [--weeks WEEKS]
 ```
 
-### Commit Message Standards
+Shows your upcoming on-call shifts for the next N weeks (default: 4).
 
-The project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. Each commit message should follow this format:
-
-```
-<type>(<scope>): <description>
-```
-
-#### Types
-
-- `feat`: A new feature
-- `fix`: A bug fix
-- `docs`: Documentation only changes
-- `style`: Changes that do not affect the meaning of the code
-- `refactor`: A code change that neither fixes a bug nor adds a feature
-- `perf`: A code change that improves performance
-- `test`: Adding missing tests or correcting existing tests
-- `chore`: Changes to the build process or auxiliary tools
-- `ci`: Changes to CI configuration files and scripts
-
-#### Scopes
-
-- `cli`: Command-line interface changes
-- `config`: Configuration changes
-- `api`: API-related changes
-- `container`: Container-related changes
-- `deps`: Dependency updates
-- `docs`: Documentation changes
-
-#### Examples
+#### Show All On-Call Shifts
 
 ```bash
-feat(cli): add new command for schedule management
-fix(api): handle rate limiting errors gracefully
-docs(docs): update contributing guidelines
-chore(deps): update pdpyras to latest version
+myshift plan [schedule_id] [--weeks WEEKS] [--utc]
 ```
 
-When a commit message doesn't meet these standards, the hook will:
-1. Show the error message
-2. Display the current commit message
-3. Offer options to:
-   - Edit the message (opens git commit editor)
-   - Abort the commit
-   - Force the commit despite validation errors 
+Shows all on-call shifts in the schedule for the next N weeks (default: 4). Use `--utc` to display times in UTC instead of local timezone.
+
+## Development
+
+### Setup
+
+1. Clone the repository
+2. Install development dependencies:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+### Running Tests
+
+```bash
+pytest
+```
+
+### Code Style
+
+This project uses:
+- black for code formatting
+- flake8 for linting
+- mypy for type checking
+
+Run all checks with:
+```bash
+pre-commit run --all-files
+```
+
+## License
+
+Apache License 2.0 

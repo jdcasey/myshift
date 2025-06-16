@@ -5,24 +5,75 @@ build-backend = "hatchling.build"
 [project]
 name = "myshift"
 version = "0.1.0"
-authors = [
-  { name="John Casey", email="john.casey@example.com" },
-]
-description = "A tool for managing on-call shifts in PagerDuty"
+description = "A command-line tool for managing PagerDuty on-call schedules"
 readme = "README.md"
 requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    { name = "John Casey", email = "john@example.com" }
+]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "pagerduty",
-    "python-dateutil",
+    "pagerduty>=1.0.0",
+    "pyyaml>=6.0",
+    "python-dateutil>=2.8.2",
+    "pytz>=2023.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "sphinx-autodoc-typehints>=1.0.0",
+    "sphinx-copybutton>=0.5.0",
+    "sphinx-issues>=3.0.0",
+    "sphinx-removed-in>=0.2.0",
+    "sphinx-tabs>=3.0.0",
+    "sphinx-toolbox>=3.0.0",
 ]
 
 [project.scripts]
 myshift = "myshift.__main__:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["myshift"] 
+packages = ["myshift"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false 

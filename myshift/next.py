@@ -12,14 +12,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Next shift management for PagerDuty on-call schedules.
+
+This module provides functionality to view the next upcoming on-call shift for a user,
+including:
+- Finding the next scheduled shift within a 3-month window
+- Filtering shifts by user (via ID or email)
+- Displaying shift details in a user-friendly format
+"""
+
 import argparse
 import sys
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
+from dateutil.relativedelta import relativedelta
 from myshift.config import load_config
-from myshift.util import get_pd_session, resolve_schedule_id,get_user_id_by_email, get_user_name_by_id
+from myshift.util import get_pd_session, resolve_schedule_id, get_user_id_by_email, get_user_name_by_id, get_unique_shifts
+
+MAX_MONTHS_AHEAD = 3
 
 def next_main(args: Optional[List[str]] = None, config: Optional[Dict[str, Any]] = None) -> None:
+    """Main entry point for the next command.
+    
+    This function handles the next sub-command, allowing users to:
+    1. View the next upcoming shift for a specific user
+    2. Look ahead up to 3 months for the next shift
+    3. Identify users by ID or email
+    
+    Command-line arguments:
+        schedule_id: Optional PagerDuty schedule ID to check
+        --user-id: Optional user ID to check (overrides my_user from config)
+        --user-email: Optional user email to check (overrides my_user from config)
+    
+    Args:
+        args: Optional command line arguments
+        config: Optional configuration dictionary
+        
+    Raises:
+        SystemExit: If required arguments are missing or if API calls fail
+    """
     parser = argparse.ArgumentParser(description='Show the next on-call shift for a user.')
     parser.add_argument('schedule_id', nargs='?', help='PagerDuty schedule ID to check')
     group = parser.add_mutually_exclusive_group(required=False)  # Changed to not required since we can use config
@@ -51,23 +82,18 @@ def next_main(args: Optional[List[str]] = None, config: Optional[Dict[str, Any]]
             user_id = my_user
 
     user_name = get_user_name_by_id(session, user_id)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
+    end_date = now + relativedelta(months=+MAX_MONTHS_AHEAD)
+    unique_shifts = get_unique_shifts(session, user_id, schedule_id, end_date)
     
-    # Get the next shift by querying from now until a reasonable future date (e.g., 1 year)
-    params = {
-        'since': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'until': (now.replace(year=now.year + 1)).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'overflow': 'true'
-    }
-    
-    resp = session.rget(f'/schedules/{schedule_id}/users/{user_id}/on_call', params=params)
-    shifts = resp.get('oncalls', [])
-    
-    if not shifts:
-        print(f"No upcoming shifts found for {user_name} ({user_id}).")
+    if not unique_shifts:
+        print(f"No upcoming shifts found for {user_name} ({user_id}) in the next {MAX_MONTHS_AHEAD} months.")
         return
     
-    # The first shift in the response is the next one
-    next_shift = shifts[0]
+    # The first shift in the sorted list is the next one
+    start, end = unique_shifts[0]
     print(f"Next on-call shift for {user_name} ({user_id}):")
-    print(f"  {next_shift['start']} to {next_shift['end']}") 
+    day = start.strftime('%Y-%m-%d')
+    start_str = start.strftime('%H:%M')
+    end_str = end.strftime('%H:%M')
+    print(f"  {day}: {start_str} to {end_str}") 
