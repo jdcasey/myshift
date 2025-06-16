@@ -130,17 +130,32 @@ def get_unique_shifts(session: RestApiV2Client, user_id: str, schedule_id: str, 
         'until': until.strftime('%Y-%m-%dT%H:%M:%SZ'),
         'user_ids': [user_id],
         'schedule_ids': [schedule_id],
-        'overflow': 'true'
+        'overflow': 'true',
+        'limit': 100  # Maximum allowed by PagerDuty API
     }
     
-    shifts = session.rget(f'/oncalls', params=params)
+    print(f"Fetching shifts from {params['since']} to {params['until']}")
+    all_shifts = []
+    offset = 0
+    
+    while True:
+        params['offset'] = offset
+        shifts = session.rget(f'/oncalls', params=params)
+        if not shifts:
+            break
+        all_shifts.extend(shifts)
+        if len(shifts) < params['limit']:
+            break
+        offset += params['limit']
+    
+    print(f"Got {len(all_shifts)} shifts from API")
     
     # Use a set to track unique shifts by start and end time
     unique_shifts: Set[Tuple[datetime, datetime]] = set()
     utc = tz.tzutc()
     local_tz = tz.tzlocal()
     
-    for shift in shifts:
+    for shift in all_shifts:
         # Convert UTC times to local timezone
         start_utc = datetime.strptime(shift['start'], '%Y-%m-%dT%H:%M:%SZ')
         end_utc = datetime.strptime(shift['end'], '%Y-%m-%dT%H:%M:%SZ')
@@ -151,7 +166,8 @@ def get_unique_shifts(session: RestApiV2Client, user_id: str, schedule_id: str, 
         # Add to set of unique shifts
         unique_shifts.add((start_local, end_local))
     
-    return sorted(unique_shifts) 
+    print(f"Found {len(unique_shifts)} unique shifts")
+    return sorted(unique_shifts)
 
 def get_all_unique_shifts(session: RestApiV2Client, schedule_id: str, until: datetime, target_tz: Optional[datetime.tzinfo] = None) -> List[Tuple[datetime, datetime, str]]:
     """Get all unique on-call shifts in a schedule with user information.
