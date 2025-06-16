@@ -15,15 +15,15 @@
 import os
 import sys
 from typing import Any, Dict, Optional
-from pdpyras import APISession
+from pagerduty import RestApiV2Client
 
-def get_pd_session(config: Dict[str, Any]) -> APISession:
+def get_pd_session(config: Dict[str, Any]) -> RestApiV2Client:
     api_token = config.get('pagerduty_token')
-    base_url = config.get('pagerduty_base_url', 'https://api.pagerduty.com')
     if not api_token:
-        print('pagerduty_token missing in spre-config.yaml', file=sys.stderr)
+        print('pagerduty_token missing in myshift.yaml', file=sys.stderr)
         sys.exit(1)
-    return APISession(api_token, default_from_email=None, api_url=base_url)
+    
+    return RestApiV2Client(api_token)
 
 def resolve_schedule_id(parsed_args: Any, config: Dict[str, Any]) -> str:
     schedule_id = getattr(parsed_args, 'schedule_id', None) or config.get('schedule_id')
@@ -31,3 +31,20 @@ def resolve_schedule_id(parsed_args: Any, config: Dict[str, Any]) -> str:
         print('Schedule ID must be specified either as a command line argument or in the configuration file (schedule_id).', file=sys.stderr)
         sys.exit(2)
     return schedule_id 
+
+def get_user_id_by_email(session: RestApiV2Client, email: str) -> str:
+    user = session.find('users', email, attribute='email')
+    if not user:
+        print(f"User with email {email} not found in PagerDuty.", file=sys.stderr)
+        sys.exit(1) 
+
+    return user['id']
+
+def get_user_name_by_id(session: RestApiV2Client, user_id: str) -> str:
+    user = session.rget(f"/users/{user_id}")
+
+    if not user:
+        print(f"User with ID {user_id} not found in PagerDuty.", file=sys.stderr)
+        sys.exit(1) 
+
+    return user['name'] 

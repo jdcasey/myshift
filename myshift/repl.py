@@ -16,36 +16,54 @@ import argparse
 import sys
 import shlex
 import cmd
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 from myshift.override import override_main
 from myshift.upcoming import upcoming_main
 from myshift.plan import plan_main
 from myshift.next import next_main
+from myshift.config import load_config, config_main
 
 class MyShiftREPL(cmd.Cmd):
-    intro = "Welcome to the myshift REPL. Type 'help' or '?' to list commands."
+    intro = """Welcome to the myshift REPL. Type 'help' or '?' to list commands.
+Type 'help <command>' for detailed help on a specific command.
+Type 'exit', 'quit', or press Ctrl+D to exit."""
     prompt = '(myshift) '
 
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__()
+        self.config = config
+
     def do_override(self, arg: str) -> None:
-        "Override PagerDuty schedule rotations. Usage: override [args...]"
+        """Override PagerDuty schedule rotations."""
         try:
-            override_main(shlex.split(arg))
+            override_main(shlex.split(arg), self.config)
         except SystemExit:
             pass
 
     def do_upcoming(self, arg: str) -> None:
-        "Show upcoming on-call shifts for a user. Usage: upcoming [args...]"
+        """Show upcoming on-call shifts for a user."""
         try:
-            upcoming_main(shlex.split(arg))
+            upcoming_main(shlex.split(arg), self.config)
         except SystemExit:
             pass
 
     def do_plan(self, arg: str) -> None:
-        "Show all on-call shifts for the coming N weeks. Usage: plan [args...]"
+        """Show all on-call shifts for the coming N weeks."""
         try:
-            plan_main(shlex.split(arg))
+            plan_main(shlex.split(arg), self.config)
         except SystemExit:
             pass
+
+    def do_next(self, arg: str) -> None:
+        """Show the next on-call shift."""
+        try:
+            next_main(shlex.split(arg), self.config)
+        except SystemExit:
+            pass
+
+    def do_config(self, arg: str) -> None:
+        """Validate or print sampleconfiguration."""
+        config_main(arg.split() if arg else None)
 
     def do_exit(self, arg: str) -> bool:
         "Exit the REPL."
@@ -56,13 +74,24 @@ class MyShiftREPL(cmd.Cmd):
         "Exit the REPL."
         return self.do_exit(arg)
 
+    def do_EOF(self, arg: str) -> bool:
+        "Handle Ctrl+D (EOF) gracefully."
+        print("\nExiting myshift REPL.")
+        return True
+
     def emptyline(self) -> None:
         pass
 
     def default(self, line: str) -> None:
         print(f"Unknown command: {line}")
+        print("Type 'help' for a list of available commands.")
 
 
 def repl_main(args: Optional[List[str]] = None) -> None:
     print("Type 'help' for a list of commands. Arguments are the same as the CLI sub-commands.")
-    MyShiftREPL().cmdloop() 
+    try:
+        config = load_config()
+        MyShiftREPL(config).cmdloop()
+    except KeyboardInterrupt:
+        print("\nExiting myshift REPL.")
+        sys.exit(0) 

@@ -1,17 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "myshift"
 version = "0.1.0"
-description = "PagerDuty schedule management CLI tools."
 authors = [
-    { name = "John Casey", email = "jdcasey@commonjava.org" }
+  { name="John Casey", email="john.casey@example.com" },
 ]
+description = "A tool for managing on-call shifts in PagerDuty"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
-    "pdpyras",
-    "pyyaml",
-    "cmd2"
+    "pagerduty",
+    "python-dateutil",
 ]
 
 [project.scripts]
-myshift = "myshift.__main__:main" 
+myshift = "myshift.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["myshift"] 

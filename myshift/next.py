@@ -17,25 +17,38 @@ import sys
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from myshift.config import load_config
-from myshift.util import get_pd_session, resolve_schedule_id
-from myshift.user import get_user_id_by_email, get_user_name_by_id
+from myshift.util import get_pd_session, resolve_schedule_id,get_user_id_by_email, get_user_name_by_id
 
-def next_main(args: Optional[List[str]] = None) -> None:
+def next_main(args: Optional[List[str]] = None, config: Optional[Dict[str, Any]] = None) -> None:
     parser = argparse.ArgumentParser(description='Show the next on-call shift for a user.')
     parser.add_argument('schedule_id', nargs='?', help='PagerDuty schedule ID to check')
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--user-id', help='PagerDuty user ID to check')
-    group.add_argument('--user-email', help='PagerDuty user email to check')
+    group = parser.add_mutually_exclusive_group(required=False)  # Changed to not required since we can use config
+    group.add_argument('--user-id', help='PagerDuty user ID to check (overrides my_user from config)')
+    group.add_argument('--user-email', help='PagerDuty user email to check (overrides my_user from config)')
     parsed_args = parser.parse_args(args)
 
-    config = load_config()
+    if config is None:
+        config = load_config()
+
+    # Check if we have a user specified either via args or config
+    if not (parsed_args.user_id or parsed_args.user_email or config.get('my_user')):
+        print("No user specified. Either use --user-id/--user-email or set my_user in config.", file=sys.stderr)
+        sys.exit(2)
+
     schedule_id = resolve_schedule_id(parsed_args, config)
     session = get_pd_session(config)
 
     if parsed_args.user_id:
         user_id = parsed_args.user_id
-    else:
+    elif parsed_args.user_email:
         user_id = get_user_id_by_email(session, parsed_args.user_email)
+    else:
+        # Use my_user from config
+        my_user = config.get('my_user')
+        if '@' in my_user:
+            user_id = get_user_id_by_email(session, my_user)
+        else:
+            user_id = my_user
 
     user_name = get_user_name_by_id(session, user_id)
     now = datetime.utcnow()

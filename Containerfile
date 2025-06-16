@@ -34,7 +34,8 @@ COPY . .
 RUN pip install --no-cache-dir .
 
 # Set the entrypoint
-ENTRYPOINT ["myshift"]
+ENTRYPOINT ["/bin/bash"]
+# ENTRYPOINT ["myshift"]
 
-# Default command (can be overridden)
-CMD ["repl"] 
+# # Default command (can be overridden)
+# CMD ["repl"] 

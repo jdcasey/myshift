@@ -43,7 +43,6 @@ venv.bak/
 *.tgz
 
 # Configuration
-spre-config.yaml
 *.yaml
 !pyproject.toml
 

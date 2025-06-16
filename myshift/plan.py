@@ -19,13 +19,15 @@ from datetime import datetime, timedelta
 from myshift.config import load_config
 from myshift.util import get_pd_session, resolve_schedule_id
 
-def plan_main(args: Optional[List[str]] = None) -> None:
+def plan_main(args: Optional[List[str]] = None, config: Optional[Dict[str, Any]] = None) -> None:
     parser = argparse.ArgumentParser(description='Show all on-call shifts for the coming N weeks.')
     parser.add_argument('schedule_id', nargs='?', help='PagerDuty schedule ID to check')
     parser.add_argument('--weeks', type=int, default=4, help='Number of weeks to look ahead (default: 4)')
     parsed_args = parser.parse_args(args)
 
-    config = load_config()
+    if config is None:
+        config = load_config()
+
     schedule_id = resolve_schedule_id(parsed_args, config)
     session = get_pd_session(config)
 

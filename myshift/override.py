@@ -17,8 +17,7 @@ import sys
 from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, timedelta
 from myshift.config import load_config
-from myshift.util import get_pd_session, resolve_schedule_id
-from myshift.user import get_user_id_by_email, get_user_name_by_id
+from myshift.util import get_pd_session, resolve_schedule_id, get_user_id_by_email, get_user_name_by_id
 
 def get_consecutive_target_shifts(session: Any, schedule_id: str, target_user_id: str, start_date: datetime) -> List[Dict[str, str]]:
     max_days = 30
@@ -43,41 +42,30 @@ def get_consecutive_target_shifts(session: Any, schedule_id: str, target_user_id
         current_date += timedelta(days=1)
     return shifts
 
-def print_sample_config() -> None:
-    import yaml
-    sample = {
-        'pagerduty_token': 'PASTE_YOUR_PD_API_TOKEN_HERE',
-        'pagerduty_base_url': 'https://api.pagerduty.com'
-    }
-    print(yaml.dump(sample, default_flow_style=False).rstrip())
-    print('# schedule_id: PASTE_YOUR_SCHEDULE_ID_HERE')
-
-def override_main(args: Optional[List[str]] = None) -> None:
+def override_main(args: Optional[List[str]] = None, config: Optional[Dict[str, Any]] = None) -> None:
     parser = argparse.ArgumentParser(description='Override PagerDuty schedule rotations for a sequence of days.')
     parser.add_argument('schedule_id', nargs='?', help='PagerDuty schedule ID to override')
     parser.add_argument('--start-date', required=False, help='Start date (YYYY-MM-DD)')
     parser.add_argument('--end-date', required=False, help='End date (YYYY-MM-DD, inclusive)')
-    assign_group = parser.add_mutually_exclusive_group(required=False)
-    assign_group.add_argument('--user-id', help='PagerDuty user ID to assign for the override')
-    assign_group.add_argument('--user-email', help='PagerDuty user email to assign for the override')
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--user-id', help='PagerDuty user ID to assign (overrides my_user from config)')
+    group.add_argument('--user-email', help='PagerDuty user email to assign (overrides my_user from config)')
     target_group = parser.add_mutually_exclusive_group(required=False)
     target_group.add_argument('--target-user-id', help='PagerDuty user ID whose shifts will be overridden')
     target_group.add_argument('--target-user-email', help='PagerDuty user email whose shifts will be overridden')
-    parser.add_argument('--print-sample-config', action='store_true', help='Print a sample spre-config.yaml and exit')
     parser.add_argument('--dry-run', action='store_true', help='Show what would be overridden, but do not make any changes')
     parsed_args = parser.parse_args(args)
 
-    if parsed_args.print_sample_config:
-        print_sample_config()
-        sys.exit(0)
-
-    config = load_config()
+    if config is None:
+        config = load_config()
 
     # Determine schedule_id
     schedule_id = resolve_schedule_id(parsed_args, config)
 
     # Check required arguments if not printing sample config
-    if not ((parsed_args.user_id or parsed_args.user_email) and (parsed_args.target_user_id or parsed_args.target_user_email) and parsed_args.start_date):
+    if not ((parsed_args.user_id or parsed_args.user_email or config.get('my_user')) and 
+            (parsed_args.target_user_id or parsed_args.target_user_email) and 
+            parsed_args.start_date):
         print("Missing required arguments. See --help.", file=sys.stderr)
         sys.exit(2)
 
@@ -86,8 +74,15 @@ def override_main(args: Optional[List[str]] = None) -> None:
     # Determine user_id (to assign)
     if parsed_args.user_id:
         user_id = parsed_args.user_id
-    else:
+    elif parsed_args.user_email:
         user_id = get_user_id_by_email(session, parsed_args.user_email)
+    else:
+        # Use my_user from config
+        my_user = config.get('my_user')
+        if '@' in my_user:
+            user_id = get_user_id_by_email(session, my_user)
+        else:
+            user_id = my_user
 
     # Determine target_user_id (whose shifts will be overridden)
     if parsed_args.target_user_id:
