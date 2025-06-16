@@ -44,6 +44,28 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
         super().__init__()
         self.config = config
 
+    def do_help(self, arg: str) -> None:
+        """Show help for commands.
+        
+        Args:
+            arg: Optional command name to show help for
+        """
+        if arg:
+            # Show help for specific command
+            super().do_help(arg)
+        else:
+            # Show list of all commands
+            print("\nAvailable commands:")
+            print("-----------------")
+            print("next      - Show your next on-call shift")
+            print("upcoming  - Show your upcoming on-call shifts")
+            print("plan      - Show the entire on-call schedule")
+            print("override  - Override a shift in the schedule")
+            print("config    - View or modify configuration")
+            print("help      - Show this help message")
+            print("exit      - Exit the REPL")
+            print("\nType 'help <command>' for detailed help on a specific command.")
+
     def do_override(self, arg: str) -> None:
         """Override PagerDuty schedule rotations.
         
