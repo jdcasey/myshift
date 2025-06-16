@@ -36,53 +36,63 @@ from myshift.plan import plan_main
 from myshift.repl import repl_main
 from myshift.next import next_main
 
+
 def main() -> None:
     """Main entry point for the myshift CLI tool.
-    
+
     This function:
     1. Parses command-line arguments
     2. Routes to appropriate sub-command handler
     3. Handles help text generation
-    
+
     Sub-commands:
         override: Override PagerDuty schedule rotations
         upcoming: Show upcoming on-call shifts for a user
         plan: Show all on-call shifts for the coming N weeks
         next: Show the next on-call shift for a user
         repl: Start an interactive REPL for myshift commands
-    
+
     Raises:
         SystemExit: If invalid command is provided
     """
-    parser = argparse.ArgumentParser(description='MyShift CLI tool')
-    subparsers = parser.add_subparsers(dest='command', required=True)
+    parser = argparse.ArgumentParser(description="MyShift CLI tool")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Add the override sub-command
-    override_parser = subparsers.add_parser('override', help='Override PagerDuty schedule rotations')
+    override_parser = subparsers.add_parser(
+        "override", help="Override PagerDuty schedule rotations"
+    )
     # Add the upcoming sub-command
-    upcoming_parser = subparsers.add_parser('upcoming', help='Show upcoming on-call shifts for a user')
+    upcoming_parser = subparsers.add_parser(
+        "upcoming", help="Show upcoming on-call shifts for a user"
+    )
     # Add the plan sub-command
-    plan_parser = subparsers.add_parser('plan', help='Show all on-call shifts for the coming N weeks')
+    plan_parser = subparsers.add_parser(
+        "plan", help="Show all on-call shifts for the coming N weeks"
+    )
     # Add the next sub-command
-    next_parser = subparsers.add_parser('next', help='Show the next on-call shift for a user')
+    next_parser = subparsers.add_parser("next", help="Show the next on-call shift for a user")
     # Add the repl sub-command
-    repl_parser = subparsers.add_parser('repl', help='Start an interactive REPL for myshift commands')
+    repl_parser = subparsers.add_parser(
+        "repl", help="Start an interactive REPL for myshift commands"
+    )
 
     args, extra_args = parser.parse_known_args()
 
-    if args.command == 'override':
+    if args.command == "override":
         override_main(extra_args)
-    elif args.command == 'upcoming':
+    elif args.command == "upcoming":
         upcoming_main(extra_args)
-    elif args.command == 'plan':
+    elif args.command == "plan":
         plan_main(extra_args)
-    elif args.command == 'next':
+    elif args.command == "next":
         next_main(extra_args)
-    elif args.command == 'repl':
+    elif args.command == "repl":
         repl_main(extra_args)
     else:
         parser.print_help()
         sys.exit(1)
 
-if __name__ == '__main__':
-    main() 
+
+if __name__ == "__main__":
+    main()

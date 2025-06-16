@@ -10,4 +10,4 @@ from myshift.exceptions import (
 )
 from myshift.models import Schedule, Shift, User
 
-__version__ = "0.1.0" 
+__version__ = "0.1.0"

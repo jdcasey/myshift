@@ -17,27 +17,28 @@ from myshift.plan import plan_main
 from myshift.next import next_main
 from myshift.config import load_config, config_main
 
+
 class MyShiftREPL(cmd.Cmd):
     """Interactive REPL for myshift commands.
-    
+
     This class provides a command-line interface that supports:
     - Command history (up/down arrows)
     - Tab completion
     - Help text for all commands
     - Graceful exit handling
-    
+
     All myshift commands are available as sub-commands, with the same
     arguments as their CLI counterparts.
     """
-    
+
     intro = """Welcome to the myshift REPL. Type 'help' or '?' to list commands.
 Type 'help <command>' for detailed help on a specific command.
 Type 'exit', 'quit', or press Ctrl+D to exit."""
-    prompt = '(myshift) '
+    prompt = "(myshift) "
 
     def __init__(self, config: Dict[str, Any]):
         """Initialize the REPL with configuration.
-        
+
         Args:
             config: Configuration dictionary for myshift
         """
@@ -46,7 +47,7 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_help(self, arg: str) -> None:
         """Show help for commands.
-        
+
         Args:
             arg: Optional command name to show help for
         """
@@ -68,9 +69,9 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_override(self, arg: str) -> None:
         """Override PagerDuty schedule rotations.
-        
+
         Usage: override [schedule_id] [options]
-        
+
         Options:
             --start-date YYYY-MM-DD    Start date for override
             --end-date YYYY-MM-DD      End date for override
@@ -87,9 +88,9 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_upcoming(self, arg: str) -> None:
         """Show upcoming on-call shifts for a user.
-        
+
         Usage: upcoming [schedule_id] [options]
-        
+
         Options:
             --user-id ID       User ID to check
             --user-email EMAIL User email to check
@@ -102,9 +103,9 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_plan(self, arg: str) -> None:
         """Show all on-call shifts for the coming N weeks.
-        
+
         Usage: plan [schedule_id] [options]
-        
+
         Options:
             --weeks N    Number of weeks to look ahead (default: 4)
         """
@@ -115,9 +116,9 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_next(self, arg: str) -> None:
         """Show the next on-call shift.
-        
+
         Usage: next [schedule_id] [options]
-        
+
         Options:
             --user-id ID       User ID to check
             --user-email EMAIL User email to check
@@ -129,9 +130,9 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_config(self, arg: str) -> None:
         """Validate or print sample configuration.
-        
+
         Usage: config [options]
-        
+
         Options:
             --print    Print sample configuration
         """
@@ -139,7 +140,7 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_exit(self, arg: str) -> bool:
         """Exit the REPL.
-        
+
         Returns:
             True to exit the REPL
         """
@@ -148,7 +149,7 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_quit(self, arg: str) -> bool:
         """Exit the REPL (alias for exit).
-        
+
         Returns:
             True to exit the REPL
         """
@@ -156,7 +157,7 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def do_EOF(self, arg: str) -> bool:
         """Handle Ctrl+D (EOF) gracefully.
-        
+
         Returns:
             True to exit the REPL
         """
@@ -169,7 +170,7 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
     def default(self, line: str) -> None:
         """Handle unknown commands.
-        
+
         Args:
             line: The unknown command line
         """
@@ -179,10 +180,10 @@ Type 'exit', 'quit', or press Ctrl+D to exit."""
 
 def repl_main(args: Optional[List[str]] = None) -> None:
     """Start the interactive REPL.
-    
+
     Args:
         args: Optional command line arguments (unused)
-        
+
     Raises:
         SystemExit: On keyboard interrupt
     """
@@ -192,4 +193,4 @@ def repl_main(args: Optional[List[str]] = None) -> None:
         MyShiftREPL(config).cmdloop()
     except KeyboardInterrupt:
         print("\nExiting myshift REPL.")
-        sys.exit(0) 
+        sys.exit(0)

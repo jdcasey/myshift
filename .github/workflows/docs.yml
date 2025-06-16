@@ -25,7 +25,7 @@ jobs:
         cd docs
         make html
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: documentation
         path: docs/_build/html/
@@ -37,7 +37,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Download artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: documentation
         path: docs/_build/html/
