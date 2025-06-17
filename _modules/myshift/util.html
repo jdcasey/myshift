@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>myshift.util &mdash; myshift 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx-toolbox.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=30646c52"></script>
+      <script src="../../_static/tabs.js?v=3030b3cb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within myshift 0.1.0 documentation"
+          href="../../_static/opensearch.xml"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            myshift
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">myshift</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">myshift.util</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for myshift.util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2025 John Casey</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="sd">&quot;&quot;&quot;Utility functions for interacting with the PagerDuty API and managing on-call schedules.</span>
+
+<span class="sd">This module provides core functionality for:</span>
+<span class="sd">- PagerDuty API authentication and session management</span>
+<span class="sd">- Schedule ID resolution from command line args or config</span>
+<span class="sd">- User identification and information retrieval</span>
+<span class="sd">- Shift retrieval and management</span>
+<span class="sd">- User mapping and data organization</span>
+
+<span class="sd">All datetime operations handle timezone conversion between UTC and local time.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dateutil</span><span class="w"> </span><span class="kn">import</span> <span class="n">tz</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pagerduty</span><span class="w"> </span><span class="kn">import</span> <span class="n">RestApiV2Client</span>
+
+<div class="viewcode-block" id="get_pd_session">
+<a class="viewcode-back" href="../../api.html#myshift.util.get_pd_session">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_pd_session</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RestApiV2Client</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an authenticated PagerDuty API session.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        config: Configuration dictionary containing pagerduty_token</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Authenticated PagerDuty API client</span>
+<span class="sd">        </span>
+<span class="sd">    Raises:</span>
+<span class="sd">        SystemExit: If pagerduty_token is missing from config</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">api_token</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pagerduty_token&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">api_token</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pagerduty_token missing in myshift.yaml&#39;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">RestApiV2Client</span><span class="p">(</span><span class="n">api_token</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="resolve_schedule_id">
+<a class="viewcode-back" href="../../api.html#myshift.util.resolve_schedule_id">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_schedule_id</span><span class="p">(</span><span class="n">parsed_args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve schedule ID from command line arguments or configuration.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        parsed_args: Command line arguments object</span>
+<span class="sd">        config: Configuration dictionary</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Schedule ID string</span>
+<span class="sd">        </span>
+<span class="sd">    Raises:</span>
+<span class="sd">        SystemExit: If schedule_id is not found in either source</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">schedule_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">parsed_args</span><span class="p">,</span> <span class="s1">&#39;schedule_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;schedule_id&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">schedule_id</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Schedule ID must be specified either as a command line argument or in the configuration file (schedule_id).&#39;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">schedule_id</span> </div>
+
+
+<div class="viewcode-block" id="get_user_id_by_email">
+<a class="viewcode-back" href="../../api.html#myshift.util.get_user_id_by_email">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_user_id_by_email</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">RestApiV2Client</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get PagerDuty user ID from email address.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        session: PagerDuty API session</span>
+<span class="sd">        email: User&#39;s email address</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        User ID string</span>
+<span class="sd">        </span>
+<span class="sd">    Raises:</span>
+<span class="sd">        SystemExit: If user is not found</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">,</span> <span class="n">email</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s1">&#39;email&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;User with email </span><span class="si">{</span><span class="n">email</span><span class="si">}</span><span class="s2"> not found in PagerDuty.&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> 
+
+    <span class="k">return</span> <span class="n">user</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_user_name_by_id">
+<a class="viewcode-back" href="../../api.html#myshift.util.get_user_name_by_id">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_user_name_by_id</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">RestApiV2Client</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get PagerDuty user&#39;s full name from their ID.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        session: PagerDuty API session</span>
+<span class="sd">        user_id: User&#39;s PagerDuty ID</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        User&#39;s full name</span>
+<span class="sd">        </span>
+<span class="sd">    Raises:</span>
+<span class="sd">        SystemExit: If user is not found</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">rget</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/users/</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;User with ID </span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2"> not found in PagerDuty.&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> 
+
+    <span class="k">return</span> <span class="n">user</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> </div>
+
+
+<div class="viewcode-block" id="get_unique_shifts">
+<a class="viewcode-back" href="../../api.html#myshift.util.get_unique_shifts">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_unique_shifts</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">RestApiV2Client</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">schedule_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">until</span><span class="p">:</span> <span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">datetime</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get unique on-call shifts for a user in a schedule.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        session: PagerDuty API session</span>
+<span class="sd">        user_id: PagerDuty user ID</span>
+<span class="sd">        schedule_id: PagerDuty schedule ID</span>
+<span class="sd">        until: End datetime for the search range</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        List of tuples containing (start_time, end_time) in local timezone.</span>
+<span class="sd">        Times are sorted chronologically.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;since&#39;</span><span class="p">:</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;until&#39;</span><span class="p">:</span> <span class="n">until</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;user_ids&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">user_id</span><span class="p">],</span>
+        <span class="s1">&#39;schedule_ids&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">schedule_id</span><span class="p">],</span>
+        <span class="s1">&#39;overflow&#39;</span><span class="p">:</span> <span class="s1">&#39;true&#39;</span>
+    <span class="p">}</span>
+    
+    <span class="n">shifts</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">rget</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;/oncalls&#39;</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+    
+    <span class="c1"># Use a set to track unique shifts by start and end time</span>
+    <span class="n">unique_shifts</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">datetime</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">utc</span> <span class="o">=</span> <span class="n">tz</span><span class="o">.</span><span class="n">tzutc</span><span class="p">()</span>
+    <span class="n">local_tz</span> <span class="o">=</span> <span class="n">tz</span><span class="o">.</span><span class="n">tzlocal</span><span class="p">()</span>
+    
+    <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">shifts</span><span class="p">:</span>
+        <span class="c1"># Convert UTC times to local timezone</span>
+        <span class="n">start_utc</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">shift</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">],</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">)</span>
+        <span class="n">end_utc</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">shift</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">],</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">)</span>
+        
+        <span class="n">start_local</span> <span class="o">=</span> <span class="n">start_utc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">local_tz</span><span class="p">)</span>
+        <span class="n">end_local</span> <span class="o">=</span> <span class="n">end_utc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">local_tz</span><span class="p">)</span>
+        
+        <span class="c1"># Add to set of unique shifts</span>
+        <span class="n">unique_shifts</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">start_local</span><span class="p">,</span> <span class="n">end_local</span><span class="p">))</span>
+    
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unique_shifts</span><span class="p">)</span> </div>
+
+
+<div class="viewcode-block" id="get_all_unique_shifts">
+<a class="viewcode-back" href="../../api.html#myshift.util.get_all_unique_shifts">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_all_unique_shifts</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">RestApiV2Client</span><span class="p">,</span> <span class="n">schedule_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">until</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">target_tz</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">tzinfo</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get all unique on-call shifts in a schedule with user information.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        session: PagerDuty API session</span>
+<span class="sd">        schedule_id: PagerDuty schedule ID</span>
+<span class="sd">        until: End datetime for the search range</span>
+<span class="sd">        target_tz: Target timezone for the output times (defaults to local timezone)</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        List of tuples containing (start_time, end_time, user_id) in target timezone.</span>
+<span class="sd">        Times are sorted chronologically.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;since&#39;</span><span class="p">:</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;until&#39;</span><span class="p">:</span> <span class="n">until</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;schedule_ids&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">schedule_id</span><span class="p">],</span>
+        <span class="s1">&#39;overflow&#39;</span><span class="p">:</span> <span class="s1">&#39;true&#39;</span>
+    <span class="p">}</span>
+    
+    <span class="n">shifts</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">rget</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;/oncalls&#39;</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+    
+    <span class="c1"># Use a set to track unique shifts by start, end time, and user</span>
+    <span class="n">unique_shifts</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">utc</span> <span class="o">=</span> <span class="n">tz</span><span class="o">.</span><span class="n">tzutc</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">target_tz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target_tz</span> <span class="o">=</span> <span class="n">tz</span><span class="o">.</span><span class="n">tzlocal</span><span class="p">()</span>
+    
+    <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">shifts</span><span class="p">:</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">shift</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;user&#39;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">user_id</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Convert UTC times to target timezone</span>
+        <span class="n">start_utc</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">shift</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">],</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">)</span>
+        <span class="n">end_utc</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">shift</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">],</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">)</span>
+        
+        <span class="n">start_local</span> <span class="o">=</span> <span class="n">start_utc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">target_tz</span><span class="p">)</span>
+        <span class="n">end_local</span> <span class="o">=</span> <span class="n">end_utc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">target_tz</span><span class="p">)</span>
+        
+        <span class="c1"># Add to set of unique shifts with user info</span>
+        <span class="n">unique_shifts</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">start_local</span><span class="p">,</span> <span class="n">end_local</span><span class="p">,</span> <span class="n">user_id</span><span class="p">))</span>
+    
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unique_shifts</span><span class="p">)</span> </div>
+
+
+<div class="viewcode-block" id="build_user_map">
+<a class="viewcode-back" href="../../api.html#myshift.util.build_user_map">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_user_map</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">RestApiV2Client</span><span class="p">,</span> <span class="n">schedule_entries</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a map of user objects from schedule entries.</span>
+
+<span class="sd">    This function builds a map of all user objects referenced in the given schedule entries</span>
+<span class="sd">    by collecting unique user IDs and then fetching the full user objects in a single request.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        session: PagerDuty API session</span>
+<span class="sd">        schedule_entries: List of tuples containing (start_time, end_time, user_id)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dictionary mapping user IDs to their full user objects.</span>
+<span class="sd">        Each user object contains all PagerDuty user information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">user_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">uid</span> <span class="ow">in</span> <span class="p">[</span><span class="n">entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">schedule_entries</span> <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]]:</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">rget</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/users/</span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">user</span><span class="p">:</span>
+            <span class="n">user_map</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span> <span class="o">=</span> <span class="n">user</span>
+    
+    <span class="k">return</span> <span class="n">user_map</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, John Casey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

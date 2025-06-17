@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>myshift.repl &mdash; myshift 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx-toolbox.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=a5c4661c" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=30646c52"></script>
+      <script src="../../_static/tabs.js?v=3030b3cb"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within myshift 0.1.0 documentation"
+          href="../../_static/opensearch.xml"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            myshift
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">myshift</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">myshift.repl</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for myshift.repl</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Interactive REPL (Read-Eval-Print Loop) for myshift commands.</span>
+
+<span class="sd">This module provides an interactive command-line interface for myshift,</span>
+<span class="sd">allowing users to execute myshift commands without having to type the</span>
+<span class="sd">&#39;myshift&#39; prefix each time. It supports all main myshift commands and</span>
+<span class="sd">provides help text and command history.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shlex</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cmd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">myshift.override</span><span class="w"> </span><span class="kn">import</span> <span class="n">override_main</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">myshift.upcoming</span><span class="w"> </span><span class="kn">import</span> <span class="n">upcoming_main</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">myshift.plan</span><span class="w"> </span><span class="kn">import</span> <span class="n">plan_main</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">myshift.next</span><span class="w"> </span><span class="kn">import</span> <span class="n">next_main</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">myshift.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span><span class="p">,</span> <span class="n">config_main</span>
+
+<div class="viewcode-block" id="MyShiftREPL">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MyShiftREPL</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">Cmd</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interactive REPL for myshift commands.</span>
+<span class="sd">    </span>
+<span class="sd">    This class provides a command-line interface that supports:</span>
+<span class="sd">    - Command history (up/down arrows)</span>
+<span class="sd">    - Tab completion</span>
+<span class="sd">    - Help text for all commands</span>
+<span class="sd">    - Graceful exit handling</span>
+<span class="sd">    </span>
+<span class="sd">    All myshift commands are available as sub-commands, with the same</span>
+<span class="sd">    arguments as their CLI counterparts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">intro</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Welcome to the myshift REPL. Type &#39;help&#39; or &#39;?&#39; to list commands.</span>
+<span class="s2">Type &#39;help &lt;command&gt;&#39; for detailed help on a specific command.</span>
+<span class="s2">Type &#39;exit&#39;, &#39;quit&#39;, or press Ctrl+D to exit.&quot;&quot;&quot;</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="s1">&#39;(myshift) &#39;</span>
+
+<div class="viewcode-block" id="MyShiftREPL.__init__">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the REPL with configuration.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration dictionary for myshift</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.do_override">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.do_override">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_override</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Override PagerDuty schedule rotations.</span>
+<span class="sd">        </span>
+<span class="sd">        Usage: override [schedule_id] [options]</span>
+<span class="sd">        </span>
+<span class="sd">        Options:</span>
+<span class="sd">            --start-date YYYY-MM-DD    Start date for override</span>
+<span class="sd">            --end-date YYYY-MM-DD      End date for override</span>
+<span class="sd">            --user-id ID               User ID to assign</span>
+<span class="sd">            --user-email EMAIL         User email to assign</span>
+<span class="sd">            --target-user-id ID        Target user ID to override</span>
+<span class="sd">            --target-user-email EMAIL  Target user email to override</span>
+<span class="sd">            --dry-run                  Show what would be overridden</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">override_main</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">arg</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">SystemExit</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.do_upcoming">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.do_upcoming">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_upcoming</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show upcoming on-call shifts for a user.</span>
+<span class="sd">        </span>
+<span class="sd">        Usage: upcoming [schedule_id] [options]</span>
+<span class="sd">        </span>
+<span class="sd">        Options:</span>
+<span class="sd">            --user-id ID       User ID to check</span>
+<span class="sd">            --user-email EMAIL User email to check</span>
+<span class="sd">            --weeks N         Number of weeks to look ahead (default: 4)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">upcoming_main</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">arg</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">SystemExit</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.do_plan">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.do_plan">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show all on-call shifts for the coming N weeks.</span>
+<span class="sd">        </span>
+<span class="sd">        Usage: plan [schedule_id] [options]</span>
+<span class="sd">        </span>
+<span class="sd">        Options:</span>
+<span class="sd">            --weeks N    Number of weeks to look ahead (default: 4)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">plan_main</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">arg</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">SystemExit</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.do_next">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.do_next">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_next</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show the next on-call shift.</span>
+<span class="sd">        </span>
+<span class="sd">        Usage: next [schedule_id] [options]</span>
+<span class="sd">        </span>
+<span class="sd">        Options:</span>
+<span class="sd">            --user-id ID       User ID to check</span>
+<span class="sd">            --user-email EMAIL User email to check</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">next_main</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">arg</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">SystemExit</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.do_config">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.do_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate or print sample configuration.</span>
+<span class="sd">        </span>
+<span class="sd">        Usage: config [options]</span>
+<span class="sd">        </span>
+<span class="sd">        Options:</span>
+<span class="sd">            --print    Print sample configuration</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config_main</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">if</span> <span class="n">arg</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.do_exit">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.do_exit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_exit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exit the REPL.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True to exit the REPL</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Exiting myshift REPL.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.do_quit">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.do_quit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_quit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exit the REPL (alias for exit).</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True to exit the REPL</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_exit</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.do_EOF">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.do_EOF">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">do_EOF</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle Ctrl+D (EOF) gracefully.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True to exit the REPL</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Exiting myshift REPL.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.emptyline">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.emptyline">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">emptyline</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle empty line input.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MyShiftREPL.default">
+<a class="viewcode-back" href="../../api.html#myshift.repl.MyShiftREPL.default">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle unknown commands.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            line: The unknown command line</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown command: </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Type &#39;help&#39; for a list of available commands.&quot;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="repl_main">
+<a class="viewcode-back" href="../../api.html#myshift.repl.repl_main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">repl_main</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Start the interactive REPL.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Optional command line arguments (unused)</span>
+<span class="sd">        </span>
+<span class="sd">    Raises:</span>
+<span class="sd">        SystemExit: On keyboard interrupt</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Type &#39;help&#39; for a list of commands. Arguments are the same as the CLI sub-commands.&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">()</span>
+        <span class="n">MyShiftREPL</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">cmdloop</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Exiting myshift REPL.&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> </div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, John Casey.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
