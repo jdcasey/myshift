@@ -69,7 +69,6 @@ After installation, you need to configure myshift:
 
    api_key: your_api_key_here
    schedule_id: your_schedule_id_here
-   timezone: America/New_York
 
 Verifying Installation
 --------------------

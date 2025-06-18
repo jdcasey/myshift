@@ -65,7 +65,20 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#myshift.config.ConfigDict"><code class="docutils literal notranslate"><span class="pre">ConfigDict</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#myshift.config.ConfigDict.token"><code class="docutils literal notranslate"><span class="pre">ConfigDict.token</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#myshift.config.ConfigDict.schedule_id"><code class="docutils literal notranslate"><span class="pre">ConfigDict.schedule_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#myshift.config.ConfigDict.my_user"><code class="docutils literal notranslate"><span class="pre">ConfigDict.my_user</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#myshift.config.get_config_paths"><code class="docutils literal notranslate"><span class="pre">get_config_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#myshift.config.load_config"><code class="docutils literal notranslate"><span class="pre">load_config()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#myshift.config.print_sample_config"><code class="docutils literal notranslate"><span class="pre">print_sample_config()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#myshift.config.validate_config"><code class="docutils literal notranslate"><span class="pre">validate_config()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#myshift.config.config_main"><code class="docutils literal notranslate"><span class="pre">config_main()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
@@ -129,6 +142,127 @@
 </section>
 <section id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this heading"></a></h2>
+<span class="target" id="module-myshift.config"></span><p>Configuration management for the myshift tool.</p>
+<p>This module handles:
+- Configuration file discovery and loading
+- Configuration validation
+- Sample configuration generation</p>
+<p>The configuration can be stored in multiple locations:
+- Linux: $XDG_CONFIG_HOME/myshift.yaml or ~/.config/myshift.yaml
+- macOS: ~/Library/Application Support/myshift.yaml</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="myshift.config.ConfigDict">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">myshift.config.</span></span><span class="sig-name descname"><span class="pre">ConfigDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myshift/config.html#ConfigDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myshift.config.ConfigDict" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>Type definition for configuration dictionary.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="myshift.config.ConfigDict.token">
+<span class="sig-name descname"><span class="pre">token</span></span><a class="headerlink" href="#myshift.config.ConfigDict.token" title="Permalink to this definition"></a></dt>
+<dd><p><strong>Type:</strong>    <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="myshift.config.ConfigDict.schedule_id">
+<span class="sig-name descname"><span class="pre">schedule_id</span></span><a class="headerlink" href="#myshift.config.ConfigDict.schedule_id" title="Permalink to this definition"></a></dt>
+<dd><p><strong>Type:</strong>    <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="myshift.config.ConfigDict.my_user">
+<span class="sig-name descname"><span class="pre">my_user</span></span><a class="headerlink" href="#myshift.config.ConfigDict.my_user" title="Permalink to this definition"></a></dt>
+<dd><p><strong>Type:</strong>    <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myshift.config.get_config_paths">
+<span class="sig-prename descclassname"><span class="pre">myshift.config.</span></span><span class="sig-name descname"><span class="pre">get_config_paths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/myshift/config.html#get_config_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myshift.config.get_config_paths" title="Permalink to this definition"></a></dt>
+<dd><p>Get the list of possible configuration file paths in order of precedence.</p>
+<p>The paths are checked in the following order:
+1. $XDG_CONFIG_HOME/myshift.yaml (Linux)
+2. ~/.config/myshift.yaml (Linux)
+3. ~/Library/Application Support/myshift.yaml (macOS)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of Path objects representing possible config file locations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myshift.config.load_config">
+<span class="sig-prename descclassname"><span class="pre">myshift.config.</span></span><span class="sig-name descname"><span class="pre">load_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/myshift/config.html#load_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myshift.config.load_config" title="Permalink to this definition"></a></dt>
+<dd><p>Load configuration from the first available config file.</p>
+<p>The configuration file should be a YAML file containing:
+- pagerduty_token: Required API token for PagerDuty
+- my_user: Optional user ID or email for the current user
+- schedule_id: Optional default schedule ID</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#myshift.config.ConfigDict" title="myshift.config.ConfigDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigDict</span></code></a></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Configuration dictionary</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#SystemExit" title="(in Python v3.13)"><strong>SystemExit</strong></a> – If no config file is found or if there’s an error loading the file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myshift.config.print_sample_config">
+<span class="sig-prename descclassname"><span class="pre">myshift.config.</span></span><span class="sig-name descname"><span class="pre">print_sample_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/myshift/config.html#print_sample_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myshift.config.print_sample_config" title="Permalink to this definition"></a></dt>
+<dd><p>Print a sample configuration file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myshift.config.validate_config">
+<span class="sig-prename descclassname"><span class="pre">myshift.config.</span></span><span class="sig-name descname"><span class="pre">validate_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myshift/config.html#validate_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myshift.config.validate_config" title="Permalink to this definition"></a></dt>
+<dd><p>Validate the configuration parameters.</p>
+<p>Checks for:
+- Presence of required pagerduty_token
+- Valid format of my_user (if present)
+- Valid format of schedule_id (if present)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference internal" href="#myshift.config.ConfigDict" title="myshift.config.ConfigDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigDict</span></code></a>) – Configuration dictionary to validate</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#SystemExit" title="(in Python v3.13)"><strong>SystemExit</strong></a> – If any validation fails</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="myshift.config.config_main">
+<span class="sig-prename descclassname"><span class="pre">myshift.config.</span></span><span class="sig-name descname"><span class="pre">config_main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/myshift/config.html#config_main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#myshift.config.config_main" title="Permalink to this definition"></a></dt>
+<dd><p>Handle the config sub-command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]) – Optional list of command line arguments</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#SystemExit" title="(in Python v3.13)"><strong>SystemExit</strong></a> – If configuration validation fails</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 </section>
 

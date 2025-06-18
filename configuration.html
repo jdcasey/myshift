@@ -59,18 +59,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#configuration-file">Configuration File</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-options">Configuration Options</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#pagerduty-settings">PagerDuty Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#display-settings">Display Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#logging-settings">Logging Settings</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#example-configuration">Example Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#environment-variables">Environment Variables</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration-management">Configuration Management</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#view-configuration">View Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#edit-configuration">Edit Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#print-configuration">Print Configuration</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-validation">Configuration Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#best-practices">Best Practices</a></li>
 </ul>
@@ -110,7 +101,7 @@
 <p>This section details the configuration options available in myshift.</p>
 <section id="configuration-file">
 <h2>Configuration File<a class="headerlink" href="#configuration-file" title="Permalink to this heading"></a></h2>
-<p>The configuration file is stored in YAML format and contains settings for the PagerDuty API connection and display preferences.</p>
+<p>The configuration file is stored in YAML format and contains settings for the PagerDuty API connection.</p>
 </section>
 <section id="configuration-options">
 <h2>Configuration Options<a class="headerlink" href="#configuration-options" title="Permalink to this heading"></a></h2>
@@ -122,22 +113,6 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">schedule_id</span></code>: The ID of your on-call schedule</p></li>
 </ul>
 </section>
-<section id="display-settings">
-<h3>Display Settings<a class="headerlink" href="#display-settings" title="Permalink to this heading"></a></h3>
-<p>The following settings control how information is displayed:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">timezone</span></code>: Your local timezone (e.g., “America/New_York”)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">display_format</span></code>: Output format (default, json, or yaml)</p></li>
-</ul>
-</section>
-<section id="logging-settings">
-<h3>Logging Settings<a class="headerlink" href="#logging-settings" title="Permalink to this heading"></a></h3>
-<p>The following settings control logging behavior:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">log_level</span></code>: Logging level (DEBUG, INFO, WARNING, ERROR)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">log_file</span></code>: Path to log file (optional)</p></li>
-</ul>
-</section>
 </section>
 <section id="example-configuration">
 <h2>Example Configuration<a class="headerlink" href="#example-configuration" title="Permalink to this heading"></a></h2>
@@ -145,52 +120,8 @@
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># PagerDuty Settings</span>
 <span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">your_api_key_here</span>
 <span class="nt">schedule_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">your_schedule_id_here</span>
-
-<span class="c1"># Display Settings</span>
-<span class="nt">timezone</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">America/New_York</span>
-<span class="nt">display_format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
-
-<span class="c1"># Logging Settings</span>
-<span class="nt">log_level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INFO</span>
-<span class="nt">log_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">~/.myshift/myshift.log</span>
 </pre></div>
 </div>
-</section>
-<section id="environment-variables">
-<h2>Environment Variables<a class="headerlink" href="#environment-variables" title="Permalink to this heading"></a></h2>
-<p>The following environment variables can be used to override configuration settings:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">Myshift_API_KEY</span></code>: PagerDuty API key</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Myshift_SCHEDULE_ID</span></code>: Schedule ID</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Myshift_TIMEZONE</span></code>: Timezone</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Myshift_DISPLAY_FORMAT</span></code>: Display format</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Myshift_LOG_LEVEL</span></code>: Log level</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Myshift_LOG_FILE</span></code>: Log file path</p></li>
-</ul>
-</section>
-<section id="configuration-management">
-<h2>Configuration Management<a class="headerlink" href="#configuration-management" title="Permalink to this heading"></a></h2>
-<section id="view-configuration">
-<h3>View Configuration<a class="headerlink" href="#view-configuration" title="Permalink to this heading"></a></h3>
-<p>To view your current configuration:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>myshift<span class="w"> </span>config<span class="w"> </span>show
-</pre></div>
-</div>
-</section>
-<section id="edit-configuration">
-<h3>Edit Configuration<a class="headerlink" href="#edit-configuration" title="Permalink to this heading"></a></h3>
-<p>To edit your configuration:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>myshift<span class="w"> </span>config<span class="w"> </span>edit
-</pre></div>
-</div>
-</section>
-<section id="print-configuration">
-<h3>Print Configuration<a class="headerlink" href="#print-configuration" title="Permalink to this heading"></a></h3>
-<p>To print your configuration in a specific format:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>myshift<span class="w"> </span>config<span class="w"> </span>print<span class="w"> </span>--format<span class="w"> </span>json
-</pre></div>
-</div>
-</section>
 </section>
 <section id="configuration-validation">
 <h2>Configuration Validation<a class="headerlink" href="#configuration-validation" title="Permalink to this heading"></a></h2>
@@ -199,18 +130,12 @@
 <li><p>Required settings are present</p></li>
 <li><p>API key is valid</p></li>
 <li><p>Schedule ID exists</p></li>
-<li><p>Timezone is valid</p></li>
-<li><p>Display format is supported</p></li>
-<li><p>Log level is valid</p></li>
 </ul>
 </section>
 <section id="best-practices">
 <h2>Best Practices<a class="headerlink" href="#best-practices" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p>Keep your API key secure and never commit it to version control</p></li>
-<li><p>Use environment variables for sensitive information</p></li>
-<li><p>Set an appropriate log level for your needs</p></li>
-<li><p>Use a valid timezone string from the IANA timezone database</p></li>
 </ul>
 </section>
 </section>
