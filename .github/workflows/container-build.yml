@@ -10,6 +10,30 @@ env:
   IMAGE_NAME: jdcasey/myshift
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort
+
+      - name: Run black
+        run: black --check --line-length 120 .
+
+      - name: Run isort
+        run: isort --check-only --line-length 120 .
+
   security:
     name: Security Analysis
     runs-on: ubuntu-latest
@@ -30,11 +54,6 @@ jobs:
 
       - name: Run bandit
         run: bandit -r myshift/
-
-      - name: Run Safety CLI to check for vulnerabilities
-        uses: pyupio/safety-action@v1
-        with:
-          api-key: ${{ secrets.SAFETY_API_KEY }}
 
   build-and-push:
     runs-on: ubuntu-latest
