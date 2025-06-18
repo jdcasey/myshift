@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, TypedDict
 
 from dateutil import parser as date_parser
 from dateutil import tz
-from pagerduty import RestApiV2Client
+from pagerduty import RestApiV2Client, HttpError, UrlError
 
 from myshift.util import get_user_id_by_email, get_user_name_by_id
 
@@ -44,19 +44,28 @@ def get_consecutive_target_shifts(
         shifts: List[ShiftDict] = []
         if end_date is None:
             end_date = start_date + timedelta(days=14)
+            
         params = {
-            "schedule_ids[]": schedule_id,
+            "schedule_ids": [schedule_id],  # Use modern list format
             "since": start_date.isoformat(),
             "until": end_date.isoformat(),
+            "user_ids": [target_user_id],  # More efficient filtering
         }
-        resp = session.rget("/oncalls", params=params)
-        for oc in resp["oncalls"]:
+        
+        # Use modern iter_all for automatic pagination
+        all_oncalls = list(session.iter_all("/oncalls", params=params))
+        
+        for oc in all_oncalls:
             if oc.get("user", {}).get("id") == target_user_id:
                 shifts.append({"start": oc["start"], "end": oc["end"]})
-                break
+                
         return shifts
+        
+    except HttpError as e:
+        print(f"PagerDuty API error fetching shifts: {e.response.status_code} - {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error fetching shifts: {e}", file=sys.stderr)
+        print(f"Unexpected error fetching shifts: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -104,46 +113,78 @@ def create_override(
         print(f"Invalid date format: {e}. Use YYYY-MM-DD.", file=sys.stderr)
         sys.exit(1)
 
-    # Determine user_id if email provided
-    if not user_id:
-        user_id = get_user_id_by_email(session, user_email)
+    # Use context manager for better resource management
+    try:
+        # Determine user_id if email provided
+        if not user_id:
+            user_id = get_user_id_by_email(session, user_email)
 
-    # Determine target_user_id
-    if not target_user_id:
-        target_user_id = get_user_id_by_email(session, target_user_email)
+        # Determine target_user_id
+        if not target_user_id:
+            target_user_id = get_user_id_by_email(session, target_user_email)
 
-    # Get consecutive shifts for the target user
-    shifts = get_consecutive_target_shifts(session, schedule_id, target_user_id, start, end)
-    if not shifts:
-        print(
-            f"No consecutive shifts found for user {target_user_id} " f"starting from {start_str}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+        # Get consecutive shifts for the target user
+        shifts = get_consecutive_target_shifts(session, schedule_id, target_user_id, start, end)
+        if not shifts:
+            print(
+                f"No consecutive shifts found for user {target_user_id} "
+                f"starting from {start_str}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
-    # Create an override for each shift
-    override_data = {
-        "override": [
+        # Create overrides using modern batch creation pattern
+        # The API supports creating multiple overrides in one request
+        overrides_to_create = [
             {
                 "start": shift["start"],
                 "end": shift["end"],
                 "user": {"id": user_id, "type": "user_reference"},
+                "time_zone": "UTC"  # Explicitly set timezone
             }
             for shift in shifts
         ]
-    }
 
-    try:
-        result = session.rpost(f"/schedules/{schedule_id}/overrides", override_data)
-        if result:
-            user_name = get_user_name_by_id(session, user_id)
-            print(f"Created override for {user_name}")
-            for shift in shifts:
-                print(f"Start: {shift['start']}")
-                print(f"End: {shift['end']}")
-        else:
-            print("Failed to create override", file=sys.stderr)
+        # Use modern rpost for wrapped entity handling
+        try:
+            result = session.rpost(
+                f"/schedules/{schedule_id}/overrides", 
+                json=overrides_to_create  # Modern pattern: pass list directly
+            )
+            
+            if result:
+                user_name = get_user_name_by_id(session, user_id)
+                print(f"Successfully created {len(shifts)} override(s) for {user_name}")
+                for i, shift in enumerate(shifts, 1):
+                    print(f"Override {i}:")
+                    print(f"  Start: {shift['start']}")
+                    print(f"  End: {shift['end']}")
+            else:
+                print("Failed to create override", file=sys.stderr)
+                sys.exit(1)
+                
+        except HttpError as e:
+            if e.response.status_code == 400:
+                print(f"Invalid override request: {e}", file=sys.stderr)
+                # Try to extract specific error details from response
+                try:
+                    error_details = e.response.json()
+                    if "errors" in error_details:
+                        for error in error_details["errors"]:
+                            print(f"  - {error}", file=sys.stderr)
+                except:
+                    pass
+            elif e.response.status_code == 403:
+                print("Insufficient permissions to create overrides", file=sys.stderr)
+            elif e.response.status_code == 404:
+                print(f"Schedule {schedule_id} not found", file=sys.stderr)
+            else:
+                print(f"PagerDuty API error: {e.response.status_code} - {e}", file=sys.stderr)
             sys.exit(1)
+            
+    except UrlError as e:
+        print(f"Invalid API request: {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error creating override: {e}", file=sys.stderr)
+        print(f"Unexpected error creating override: {e}", file=sys.stderr)
         sys.exit(1)

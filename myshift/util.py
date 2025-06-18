@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple, TypedDict
 
 from dateutil import tz
-from pagerduty import RestApiV2Client
+from pagerduty import RestApiV2Client, HttpError, UrlError
 
 
 class UserObject(TypedDict):
@@ -58,7 +58,18 @@ def get_pd_session(config: Dict[str, Any]) -> RestApiV2Client:
         print("pagerduty_token missing in myshift.yaml", file=sys.stderr)
         sys.exit(1)
 
-    return RestApiV2Client(api_token)
+    # Configure client with modern settings
+    client = RestApiV2Client(api_token)
+    
+    # Set reasonable retry limits for better reliability
+    client.max_http_attempts = 3
+    client.sleep_timer = 2.0
+    client.sleep_timer_base = 2
+    
+    # Enable debug mode if needed (disabled by default)
+    # client.print_debug = True
+    
+    return client
 
 
 def resolve_schedule_id(parsed_args: argparse.Namespace, config: Dict[str, Any]) -> str:
@@ -96,7 +107,7 @@ def get_user_id_by_email(session: RestApiV2Client, email: str) -> str:
         User ID string
 
     Raises:
-        SystemExit: If user is not found
+        SystemExit: If user is not found or API error occurs
     """
     try:
         user = session.find("users", email, attribute="email")
@@ -104,8 +115,18 @@ def get_user_id_by_email(session: RestApiV2Client, email: str) -> str:
             print(f"User with email {email} not found in PagerDuty.", file=sys.stderr)
             sys.exit(1)
         return user["id"]
+        
+    except HttpError as e:
+        if e.response.status_code == 404:
+            print(f"User with email {email} not found in PagerDuty.", file=sys.stderr)
+        else:
+            print(f"PagerDuty API error: {e.response.status_code} - {e}", file=sys.stderr)
+        sys.exit(1)
+    except UrlError as e:
+        print(f"Invalid API request: {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error looking up user: {e}", file=sys.stderr)
+        print(f"Unexpected error looking up user: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -120,7 +141,7 @@ def get_user_name_by_id(session: RestApiV2Client, user_id: str) -> str:
         User's full name
 
     Raises:
-        SystemExit: If user is not found
+        SystemExit: If user is not found or API error occurs
     """
     try:
         user = session.rget(f"/users/{user_id}")
@@ -128,8 +149,15 @@ def get_user_name_by_id(session: RestApiV2Client, user_id: str) -> str:
             print(f"User with ID {user_id} not found in PagerDuty.", file=sys.stderr)
             sys.exit(1)
         return user["name"]
+        
+    except HttpError as e:
+        if e.response.status_code == 404:
+            print(f"User with ID {user_id} not found in PagerDuty.", file=sys.stderr)
+        else:
+            print(f"PagerDuty API error: {e.response.status_code} - {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error looking up user: {e}", file=sys.stderr)
+        print(f"Unexpected error looking up user: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -163,23 +191,12 @@ def get_unique_shifts(
             "user_ids": [user_id],
             "schedule_ids": [schedule_id],
             "overflow": "true",
-            "limit": 100,  # Maximum allowed by PagerDuty API
         }
 
         print(f"Fetching shifts from {params['since']} to {params['until']}")
-        all_shifts = []
-        offset = 0
 
-        while True:
-            params["offset"] = offset
-            shifts = session.rget(f"/oncalls", params=params)
-            if not shifts:
-                break
-            all_shifts.extend(shifts)
-            if len(shifts) < params["limit"]:
-                break
-            offset += params["limit"]
-
+        # Use modern iter_all for automatic pagination
+        all_shifts = list(session.iter_all("/oncalls", params=params))
         print(f"Got {len(all_shifts)} shifts from API")
 
         # Use a set to track unique shifts by start and end time
@@ -200,8 +217,12 @@ def get_unique_shifts(
 
         print(f"Found {len(unique_shifts)} unique shifts")
         return sorted(unique_shifts)
+        
+    except HttpError as e:
+        print(f"PagerDuty API error fetching shifts: {e.response.status_code} - {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error fetching shifts: {e}", file=sys.stderr)
+        print(f"Unexpected error fetching shifts: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -235,23 +256,12 @@ def get_all_unique_shifts(
             "until": until.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "schedule_ids": [schedule_id],
             "overflow": "true",
-            "limit": 100,  # Maximum allowed by PagerDuty API
         }
 
         print(f"Fetching shifts from {params['since']} to {params['until']}")
-        all_shifts = []
-        offset = 0
 
-        while True:
-            params["offset"] = offset
-            shifts = session.rget(f"/oncalls", params=params)
-            if not shifts:
-                break
-            all_shifts.extend(shifts)
-            if len(shifts) < params["limit"]:
-                break
-            offset += params["limit"]
-
+        # Use modern iter_all for automatic pagination - much cleaner!
+        all_shifts = list(session.iter_all("/oncalls", params=params))
         print(f"Got {len(all_shifts)} shifts from API")
 
         # Use a set to track unique shifts by start, end time, and user
@@ -271,8 +281,12 @@ def get_all_unique_shifts(
 
         print(f"Found {len(unique_shifts)} unique shifts")
         return sorted(unique_shifts)
+        
+    except HttpError as e:
+        print(f"PagerDuty API error fetching shifts: {e.response.status_code} - {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error fetching shifts: {e}", file=sys.stderr)
+        print(f"Unexpected error fetching shifts: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -296,16 +310,51 @@ def build_user_map(
         user_map: Dict[str, UserObject] = {}
         user_ids = {entry[2] for entry in schedule_entries}
 
-        for user_id in user_ids:
-            user = session.rget(f"/users/{user_id}")
-            if user:
-                user_map[user_id] = {
-                    "id": user["id"],
-                    "name": user["name"],
-                    "email": user["email"],
+        # More efficient: fetch all users with include parameter
+        # This is better than individual API calls for each user
+        if user_ids:
+            # Convert to list for API call
+            user_id_list = list(user_ids)
+            
+            # Use list_all for better performance with large user sets
+            all_users = session.list_all(
+                "users", 
+                params={
+                    "ids": user_id_list,
+                    "include": ["contact_methods", "notification_rules"]
                 }
+            )
+            
+            for user in all_users:
+                if user["id"] in user_ids:
+                    user_map[user["id"]] = {
+                        "id": user["id"],
+                        "name": user["name"],
+                        "email": user["email"],
+                    }
+
+        # Fallback: for any missing users, fetch individually
+        missing_users = user_ids - set(user_map.keys())
+        for user_id in missing_users:
+            try:
+                user = session.rget(f"/users/{user_id}")
+                if user:
+                    user_map[user_id] = {
+                        "id": user["id"],
+                        "name": user["name"],
+                        "email": user["email"],
+                    }
+            except HttpError as e:
+                if e.response.status_code == 404:
+                    print(f"Warning: User {user_id} not found, skipping", file=sys.stderr)
+                else:
+                    raise
 
         return user_map
+        
+    except HttpError as e:
+        print(f"PagerDuty API error building user map: {e.response.status_code} - {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error building user map: {e}", file=sys.stderr)
+        print(f"Unexpected error building user map: {e}", file=sys.stderr)
         sys.exit(1)
