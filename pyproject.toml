@@ -40,6 +40,13 @@ dev = [
     "safety>=2.3.0",
     "pytest>=7.0.0",
 ]
+docs = [
+    "sphinx>=4.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "sphinx-toolbox>=3.0.0",
+    "sphinx-copybutton>=0.5.0",
+    "sphinx-tabs>=3.0.0",
+]
 
 [project.scripts]
 myshift = "myshift.__main__:main"

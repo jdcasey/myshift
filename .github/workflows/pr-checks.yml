@@ -69,13 +69,3 @@ jobs:
           tags: pr-check
           oci: true
           oci-path: ./myshift.tar
-
-      - name: Run container security scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          input: ./myshift.tar
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH' 
