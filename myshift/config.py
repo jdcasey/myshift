@@ -24,12 +24,21 @@ The configuration can be stored in multiple locations:
 - macOS: ~/Library/Application Support/myshift.yaml
 """
 
+import argparse
 import os
 import sys
-from typing import Dict, Any, List, Optional
-import yaml
 from pathlib import Path
-import argparse
+from typing import Any, Dict, List, Optional, TypedDict, Union
+
+import yaml
+
+
+class ConfigDict(TypedDict, total=False):
+    """Type definition for configuration dictionary."""
+
+    token: str
+    schedule_id: str
+    my_user: str
 
 
 def get_config_paths() -> List[Path]:
@@ -57,7 +66,7 @@ def get_config_paths() -> List[Path]:
     return paths
 
 
-def load_config() -> Dict[str, Any]:
+def load_config() -> ConfigDict:
     """Load configuration from the first available config file.
 
     The configuration file should be a YAML file containing:
@@ -75,13 +84,19 @@ def load_config() -> Dict[str, Any]:
         if path.exists():
             try:
                 with open(path) as f:
-                    return yaml.safe_load(f)
+                    config = yaml.safe_load(f)
+                    if not isinstance(config, dict):
+                        raise ValueError("Configuration must be a dictionary")
+                    return config
             except Exception as e:
-                print(f"Error loading config from {path}: {e}", file=sys.stderr)
+                print(
+                    f"Error loading config from {path}: {e}",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
 
     print(
-        "No configuration file found. Please create one using 'myshift config --print'",
+        "No configuration file found. Please create one using " "'myshift config --print'",
         file=sys.stderr,
     )
     sys.exit(1)
@@ -96,20 +111,19 @@ def print_sample_config() -> None:
 # - macOS: ~/Library/Application Support/myshift.yaml
 
 # PagerDuty API token
-token: "your-pagerduty-token"
+token: \"your-pagerduty-token\"
 
 # Default schedule ID (optional)
-# schedule_id: "your-default-schedule-id"
+# schedule_id: \"your-default-schedule-id\"
 
 # Your PagerDuty user ID or email (optional)
 # This will be used when no --user-id or --user-email is provided
-# my_user: "your-email@example.com"  # or "your-user-id"
-
+# my_user: \"your-email@example.com\"  # or \"your-user-id\"
 """
     )
 
 
-def validate_config(config: Dict[str, Any]) -> None:
+def validate_config(config: ConfigDict) -> None:
     """Validate the configuration parameters.
 
     Checks for:
@@ -130,7 +144,10 @@ def validate_config(config: Dict[str, Any]) -> None:
     # Validate my_user if present
     my_user = config.get("my_user")
     if my_user and not isinstance(my_user, str):
-        print("Error: 'my_user' must be a string (email or user ID)", file=sys.stderr)
+        print(
+            "Error: 'my_user' must be a string (email or user ID)",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Validate schedule_id if present
@@ -141,9 +158,20 @@ def validate_config(config: Dict[str, Any]) -> None:
 
 
 def config_main(args: Optional[List[str]] = None) -> None:
-    """Handle the config sub-command."""
+    """Handle the config sub-command.
+
+    Args:
+        args: Optional list of command line arguments
+
+    Raises:
+        SystemExit: If configuration validation fails
+    """
     parser = argparse.ArgumentParser(description="Manage MyShift configuration.")
-    parser.add_argument("--print", action="store_true", help="Print a sample configuration file")
+    parser.add_argument(
+        "--print",
+        action="store_true",
+        help="Print a sample configuration file",
+    )
     parsed_args = parser.parse_args(args)
 
     if parsed_args.print:

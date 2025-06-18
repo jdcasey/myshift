@@ -24,12 +24,21 @@ This module provides core functionality for:
 All datetime operations handle timezone conversion between UTC and local time.
 """
 
-import os
+import argparse
 import sys
-from typing import Any, Dict, Optional, Set, Tuple, List
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Set, Tuple, TypedDict
+
 from dateutil import tz
 from pagerduty import RestApiV2Client
+
+
+class UserObject(TypedDict):
+    """Type definition for PagerDuty user objects."""
+
+    id: str
+    name: str
+    email: str
 
 
 def get_pd_session(config: Dict[str, Any]) -> RestApiV2Client:
@@ -52,7 +61,7 @@ def get_pd_session(config: Dict[str, Any]) -> RestApiV2Client:
     return RestApiV2Client(api_token)
 
 
-def resolve_schedule_id(parsed_args: Any, config: Dict[str, Any]) -> str:
+def resolve_schedule_id(parsed_args: argparse.Namespace, config: Dict[str, Any]) -> str:
     """Resolve schedule ID from command line arguments or configuration.
 
     Args:
@@ -68,7 +77,8 @@ def resolve_schedule_id(parsed_args: Any, config: Dict[str, Any]) -> str:
     schedule_id = getattr(parsed_args, "schedule_id", None) or config.get("schedule_id")
     if not schedule_id:
         print(
-            "Schedule ID must be specified either as a command line argument or in the configuration file (schedule_id).",
+            "Schedule ID must be specified either as a command line argument "
+            "or in the configuration file (schedule_id).",
             file=sys.stderr,
         )
         sys.exit(2)
@@ -88,12 +98,15 @@ def get_user_id_by_email(session: RestApiV2Client, email: str) -> str:
     Raises:
         SystemExit: If user is not found
     """
-    user = session.find("users", email, attribute="email")
-    if not user:
-        print(f"User with email {email} not found in PagerDuty.", file=sys.stderr)
+    try:
+        user = session.find("users", email, attribute="email")
+        if not user:
+            print(f"User with email {email} not found in PagerDuty.", file=sys.stderr)
+            sys.exit(1)
+        return user["id"]
+    except Exception as e:
+        print(f"Error looking up user: {e}", file=sys.stderr)
         sys.exit(1)
-
-    return user["id"]
 
 
 def get_user_name_by_id(session: RestApiV2Client, user_id: str) -> str:
@@ -109,17 +122,22 @@ def get_user_name_by_id(session: RestApiV2Client, user_id: str) -> str:
     Raises:
         SystemExit: If user is not found
     """
-    user = session.rget(f"/users/{user_id}")
-
-    if not user:
-        print(f"User with ID {user_id} not found in PagerDuty.", file=sys.stderr)
+    try:
+        user = session.rget(f"/users/{user_id}")
+        if not user:
+            print(f"User with ID {user_id} not found in PagerDuty.", file=sys.stderr)
+            sys.exit(1)
+        return user["name"]
+    except Exception as e:
+        print(f"Error looking up user: {e}", file=sys.stderr)
         sys.exit(1)
-
-    return user["name"]
 
 
 def get_unique_shifts(
-    session: RestApiV2Client, user_id: str, schedule_id: str, until: datetime
+    session: RestApiV2Client,
+    user_id: str,
+    schedule_id: str,
+    until: datetime,
 ) -> List[Tuple[datetime, datetime]]:
     """Get unique on-call shifts for a user in a schedule.
 
@@ -132,52 +150,59 @@ def get_unique_shifts(
     Returns:
         List of tuples containing (start_time, end_time) in local timezone.
         Times are sorted chronologically.
+
+    Raises:
+        SystemExit: If API calls fail
     """
-    now = datetime.now(timezone.utc)
+    try:
+        now = datetime.now(timezone.utc)
 
-    params = {
-        "since": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "until": until.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "user_ids": [user_id],
-        "schedule_ids": [schedule_id],
-        "overflow": "true",
-        "limit": 100,  # Maximum allowed by PagerDuty API
-    }
+        params = {
+            "since": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "until": until.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "user_ids": [user_id],
+            "schedule_ids": [schedule_id],
+            "overflow": "true",
+            "limit": 100,  # Maximum allowed by PagerDuty API
+        }
 
-    print(f"Fetching shifts from {params['since']} to {params['until']}")
-    all_shifts = []
-    offset = 0
+        print(f"Fetching shifts from {params['since']} to {params['until']}")
+        all_shifts = []
+        offset = 0
 
-    while True:
-        params["offset"] = offset
-        shifts = session.rget(f"/oncalls", params=params)
-        if not shifts:
-            break
-        all_shifts.extend(shifts)
-        if len(shifts) < params["limit"]:
-            break
-        offset += params["limit"]
+        while True:
+            params["offset"] = offset
+            shifts = session.rget(f"/oncalls", params=params)
+            if not shifts:
+                break
+            all_shifts.extend(shifts)
+            if len(shifts) < params["limit"]:
+                break
+            offset += params["limit"]
 
-    print(f"Got {len(all_shifts)} shifts from API")
+        print(f"Got {len(all_shifts)} shifts from API")
 
-    # Use a set to track unique shifts by start and end time
-    unique_shifts: Set[Tuple[datetime, datetime]] = set()
-    utc = tz.tzutc()
-    local_tz = tz.tzlocal()
+        # Use a set to track unique shifts by start and end time
+        unique_shifts: Set[Tuple[datetime, datetime]] = set()
+        utc = tz.tzutc()
+        local_tz = tz.tzlocal()
 
-    for shift in all_shifts:
-        # Convert UTC times to local timezone
-        start_utc = datetime.strptime(shift["start"], "%Y-%m-%dT%H:%M:%SZ")
-        end_utc = datetime.strptime(shift["end"], "%Y-%m-%dT%H:%M:%SZ")
+        for shift in all_shifts:
+            # Convert UTC times to local timezone
+            start_utc = datetime.strptime(shift["start"], "%Y-%m-%dT%H:%M:%SZ")
+            end_utc = datetime.strptime(shift["end"], "%Y-%m-%dT%H:%M:%SZ")
 
-        start_local = start_utc.replace(tzinfo=utc).astimezone(local_tz)
-        end_local = end_utc.replace(tzinfo=utc).astimezone(local_tz)
+            start_local = start_utc.replace(tzinfo=utc).astimezone(local_tz)
+            end_local = end_utc.replace(tzinfo=utc).astimezone(local_tz)
 
-        # Add to set of unique shifts
-        unique_shifts.add((start_local, end_local))
+            # Add to set of unique shifts
+            unique_shifts.add((start_local, end_local))
 
-    print(f"Found {len(unique_shifts)} unique shifts")
-    return sorted(unique_shifts)
+        print(f"Found {len(unique_shifts)} unique shifts")
+        return sorted(unique_shifts)
+    except Exception as e:
+        print(f"Error fetching shifts: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def get_all_unique_shifts(
@@ -192,83 +217,95 @@ def get_all_unique_shifts(
         session: PagerDuty API session
         schedule_id: PagerDuty schedule ID
         until: End datetime for the search range
-        target_tz: Target timezone for the output times (defaults to local timezone)
+        target_tz: Optional timezone to convert times to
 
     Returns:
         List of tuples containing (start_time, end_time, user_id) in target timezone.
         Times are sorted chronologically.
+
+    Raises:
+        SystemExit: If API calls fail
     """
-    now = datetime.now(timezone.utc)
+    try:
+        now = datetime.now(timezone.utc)
+        target_tz = target_tz or tz.tzlocal()
 
-    params = {
-        "since": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "until": until.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "schedule_ids": [schedule_id],
-        "overflow": "true",
-        "limit": 100,  # Maximum allowed by PagerDuty API
-    }
+        params = {
+            "since": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "until": until.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "schedule_ids": [schedule_id],
+            "overflow": "true",
+            "limit": 100,  # Maximum allowed by PagerDuty API
+        }
 
-    print(f"Fetching shifts from {params['since']} to {params['until']}")
-    all_shifts = []
-    offset = 0
+        print(f"Fetching shifts from {params['since']} to {params['until']}")
+        all_shifts = []
+        offset = 0
 
-    while True:
-        params["offset"] = offset
-        shifts = session.rget(f"/oncalls", params=params)
-        if not shifts:
-            break
-        all_shifts.extend(shifts)
-        if len(shifts) < params["limit"]:
-            break
-        offset += params["limit"]
+        while True:
+            params["offset"] = offset
+            shifts = session.rget(f"/oncalls", params=params)
+            if not shifts:
+                break
+            all_shifts.extend(shifts)
+            if len(shifts) < params["limit"]:
+                break
+            offset += params["limit"]
 
-    print(f"Got {len(all_shifts)} shifts from API")
+        print(f"Got {len(all_shifts)} shifts from API")
 
-    # Use a set to track unique shifts by start, end time, and user
-    unique_shifts: Set[Tuple[datetime, datetime, str]] = set()
-    utc = tz.tzutc()
-    if target_tz is None:
-        target_tz = tz.tzlocal()
+        # Use a set to track unique shifts by start, end time, and user
+        unique_shifts: Set[Tuple[datetime, datetime, str]] = set()
+        utc = tz.tzutc()
 
-    for shift in all_shifts:
-        user = shift.get("user", {})
-        user_id = user.get("id", "Unknown")
+        for shift in all_shifts:
+            # Convert UTC times to target timezone
+            start_utc = datetime.strptime(shift["start"], "%Y-%m-%dT%H:%M:%SZ")
+            end_utc = datetime.strptime(shift["end"], "%Y-%m-%dT%H:%M:%SZ")
 
-        # Convert UTC times to target timezone
-        start_utc = datetime.strptime(shift["start"], "%Y-%m-%dT%H:%M:%SZ")
-        end_utc = datetime.strptime(shift["end"], "%Y-%m-%dT%H:%M:%SZ")
+            start_local = start_utc.replace(tzinfo=utc).astimezone(target_tz)
+            end_local = end_utc.replace(tzinfo=utc).astimezone(target_tz)
 
-        start_local = start_utc.replace(tzinfo=utc).astimezone(target_tz)
-        end_local = end_utc.replace(tzinfo=utc).astimezone(target_tz)
+            # Add to set of unique shifts
+            unique_shifts.add((start_local, end_local, shift["user"]["id"]))
 
-        # Add to set of unique shifts with user info
-        unique_shifts.add((start_local, end_local, user_id))
-
-    print(f"Found {len(unique_shifts)} unique shifts")
-    return sorted(unique_shifts)
+        print(f"Found {len(unique_shifts)} unique shifts")
+        return sorted(unique_shifts)
+    except Exception as e:
+        print(f"Error fetching shifts: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def build_user_map(
-    session: RestApiV2Client, schedule_entries: List[Tuple[datetime, datetime, str]]
-) -> Dict[str, Dict]:
-    """Build a map of user objects from schedule entries.
-
-    This function builds a map of all user objects referenced in the given schedule entries
-    by collecting unique user IDs and then fetching the full user objects in a single request.
+    session: RestApiV2Client,
+    schedule_entries: List[Tuple[datetime, datetime, str]],
+) -> Dict[str, UserObject]:
+    """Build a mapping of user IDs to user information.
 
     Args:
         session: PagerDuty API session
-        schedule_entries: List of tuples containing (start_time, end_time, user_id)
+        schedule_entries: List of (start_time, end_time, user_id) tuples
 
     Returns:
-        Dictionary mapping user IDs to their full user objects.
-        Each user object contains all PagerDuty user information.
+        Dictionary mapping user IDs to user information
+
+    Raises:
+        SystemExit: If API calls fail
     """
+    try:
+        user_map: Dict[str, UserObject] = {}
+        user_ids = {entry[2] for entry in schedule_entries}
 
-    user_map = {}
-    for uid in [entry[2] for entry in schedule_entries if entry[2]]:
-        user = session.rget(f"/users/{uid}")
-        if user:
-            user_map[uid] = user
+        for user_id in user_ids:
+            user = session.rget(f"/users/{user_id}")
+            if user:
+                user_map[user_id] = {
+                    "id": user["id"],
+                    "name": user["name"],
+                    "email": user["email"],
+                }
 
-    return user_map
+        return user_map
+    except Exception as e:
+        print(f"Error building user map: {e}", file=sys.stderr)
+        sys.exit(1)

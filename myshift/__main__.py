@@ -12,87 +12,89 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Main entry point for the myshift command-line tool.
-
-This module provides the command-line interface for myshift, handling:
-- Command-line argument parsing
-- Sub-command routing
-- Help text generation
-
-Available sub-commands:
-- override: Override PagerDuty schedule rotations
-- upcoming: Show upcoming on-call shifts
-- plan: Show all on-call shifts
-- next: Show next on-call shift
-- repl: Start interactive REPL
-"""
+"""Command-line interface for MyShift."""
 
 import argparse
 import sys
-from typing import Optional, List, Any
-from myshift.override import override_main
-from myshift.upcoming import upcoming_main
-from myshift.plan import plan_main
-from myshift.repl import repl_main
-from myshift.next import next_main
+from datetime import datetime, timedelta
+
+import dateutil.parser as date_parser
+import dateutil.tz
+
+from myshift import __version__
+from myshift.config import load_config
+from myshift.next import next_shift
+from myshift.override import create_override
+from myshift.plan import plan_schedule
+from myshift.repl import start_repl
+from myshift.util import (
+    get_pd_session,
+    resolve_schedule_id,
+)
 
 
-def main() -> None:
-    """Main entry point for the myshift CLI tool.
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description="Command-line interface for managing PagerDuty on-call schedules")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
-    This function:
-    1. Parses command-line arguments
-    2. Routes to appropriate sub-command handler
-    3. Handles help text generation
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
-    Sub-commands:
-        override: Override PagerDuty schedule rotations
-        upcoming: Show upcoming on-call shifts for a user
-        plan: Show all on-call shifts for the coming N weeks
-        next: Show the next on-call shift for a user
-        repl: Start an interactive REPL for myshift commands
+    # Next shift command
+    next_parser = subparsers.add_parser("next", help="Show next shift")
+    next_parser.add_argument("--user", help="Show next shift for specific user (email)")
 
-    Raises:
-        SystemExit: If invalid command is provided
-    """
-    parser = argparse.ArgumentParser(description="MyShift CLI tool")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    # Plan command
+    plan_parser = subparsers.add_parser("plan", help="Plan future schedule")
+    plan_parser.add_argument("--start", help="Start date (YYYY-MM-DD)", required=True)
+    plan_parser.add_argument("--end", help="End date (YYYY-MM-DD)", required=True)
 
-    # Add the override sub-command
-    override_parser = subparsers.add_parser(
-        "override", help="Override PagerDuty schedule rotations"
-    )
-    # Add the upcoming sub-command
-    upcoming_parser = subparsers.add_parser(
-        "upcoming", help="Show upcoming on-call shifts for a user"
-    )
-    # Add the plan sub-command
-    plan_parser = subparsers.add_parser(
-        "plan", help="Show all on-call shifts for the coming N weeks"
-    )
-    # Add the next sub-command
-    next_parser = subparsers.add_parser("next", help="Show the next on-call shift for a user")
-    # Add the repl sub-command
-    repl_parser = subparsers.add_parser(
-        "repl", help="Start an interactive REPL for myshift commands"
-    )
+    # Override command
+    override_parser = subparsers.add_parser("override", help="Create shift override")
+    override_parser.add_argument("--user", help="User to override (email)", required=True)
+    override_parser.add_argument("--start", help="Start time (YYYY-MM-DD HH:MM)", required=True)
+    override_parser.add_argument("--end", help="End time (YYYY-MM-DD HH:MM)", required=True)
 
-    args, extra_args = parser.parse_known_args()
+    # REPL command
+    subparsers.add_parser("repl", help="Start interactive REPL")
+
+    return parser.parse_args()
+
+
+def main() -> int:
+    """Main entry point."""
+    args = parse_args()
+    config = load_config()
+
+    if args.command == "next":
+        pd = get_pd_session(config)
+        schedule_id = resolve_schedule_id(config)
+        next_shift(pd, schedule_id, args.user)
+        return 0
+
+    if args.command == "plan":
+        pd = get_pd_session(config)
+        schedule_id = resolve_schedule_id(config)
+        start = date_parser.parse(args.start)
+        end = date_parser.parse(args.end)
+        plan_schedule(pd, schedule_id, start, end)
+        return 0
 
     if args.command == "override":
-        override_main(extra_args)
-    elif args.command == "upcoming":
-        upcoming_main(extra_args)
-    elif args.command == "plan":
-        plan_main(extra_args)
-    elif args.command == "next":
-        next_main(extra_args)
-    elif args.command == "repl":
-        repl_main(extra_args)
-    else:
-        parser.print_help()
-        sys.exit(1)
+        pd = get_pd_session(config)
+        schedule_id = resolve_schedule_id(config)
+        start = date_parser.parse(args.start)
+        end = date_parser.parse(args.end)
+        create_override(pd, schedule_id, args.user, start, end)
+        return 0
+
+    if args.command == "repl":
+        start_repl()
+        return 0
+
+    print("No command specified. Use --help for usage information.")
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

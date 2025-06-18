@@ -21,71 +21,44 @@ including:
 - Configurable look-ahead period
 """
 
-import argparse
 import sys
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
 from dateutil import tz
-from myshift.config import load_config
-from myshift.util import get_pd_session, resolve_schedule_id, get_all_unique_shifts, build_user_map
-import yaml
+from pagerduty import RestApiV2Client
+
+from myshift.util import UserObject, build_user_map, get_all_unique_shifts
 
 
-def plan_main(args: Optional[List[str]] = None, config: Optional[Dict[str, Any]] = None) -> None:
-    """Main entry point for the plan command.
-
-    This function handles the plan sub-command, allowing users to:
-    1. View all shifts in a schedule for a specified time period
-    2. See which users are on call during each shift
-    3. Configure the look-ahead period
-
-    Command-line arguments:
-        schedule_id: Optional PagerDuty schedule ID to check
-        --weeks: Optional number of weeks to look ahead (default: 4)
+def plan_shifts(
+    session: RestApiV2Client,
+    schedule_id: str,
+    days: int = 28,  # 4 weeks
+) -> None:
+    """Show planned shifts for a period.
 
     Args:
-        args: Optional command line arguments
-        config: Optional configuration dictionary
+        session: PagerDuty API session
+        schedule_id: PagerDuty schedule ID
+        days: Number of days to show (default: 28 days / 4 weeks)
 
     Raises:
-        SystemExit: If required arguments are missing or if API calls fail
+        SystemExit: If API calls fail
     """
-    parser = argparse.ArgumentParser(description="Show all on-call shifts for the coming N weeks.")
-    parser.add_argument("schedule_id", nargs="?", help="PagerDuty schedule ID to check")
-    parser.add_argument(
-        "--weeks", type=int, default=4, help="Number of weeks to look ahead (default: 4)"
-    )
-    parser.add_argument(
-        "--utc", action="store_true", help="Show times in UTC instead of local timezone"
-    )
-    parsed_args = parser.parse_args(args)
+    try:
+        until = datetime.now(tz.tzlocal()) + timedelta(days=days)
+        shifts = get_all_unique_shifts(session, schedule_id, until)
+        user_map = build_user_map(session, shifts)
 
-    if config is None:
-        config = load_config()
+        if not shifts:
+            print("No shifts found")
+            return
 
-    schedule_id = resolve_schedule_id(parsed_args, config)
-    session = get_pd_session(config)
-
-    now = datetime.now(timezone.utc)
-    end_date = now + timedelta(weeks=parsed_args.weeks)
-    target_tz = tz.tzutc() if parsed_args.utc else None
-    unique_shifts = get_all_unique_shifts(session, schedule_id, end_date, target_tz)
-
-    if not unique_shifts:
-        print(f"No upcoming shifts found in the next {parsed_args.weeks} weeks.")
-        return
-
-    # Build a map of user objects for display
-    user_map = build_user_map(session, unique_shifts)
-
-    # Print shifts
-    print(f"\nOn-call schedule for the next {parsed_args.weeks} weeks:")
-    for start, end, user_id in unique_shifts:
-        day = start.strftime("%Y-%m-%d")
-        start_str = start.strftime("%H:%M")
-        end_str = end.strftime("%H:%M")
-
-        user = user_map.get(user_id, {})
-        user_name = user.get("name", "Unknown")
-        user_email = user.get("email", "Unknown")
-        print(f"{day}: {start_str} to {end_str}:\n\t{user_name} ({user_email})")
+        print(f"Shifts for the next {days} days:")
+        for start, end, user_id in shifts:
+            user = user_map.get(user_id, {"name": "Unknown"})
+            print(f"{start.strftime('%Y-%m-%d %H:%M %Z')} to " f"{end.strftime('%Y-%m-%d %H:%M %Z')}: {user['name']}")
+    except Exception as e:
+        print(f"Error planning shifts: {e}", file=sys.stderr)
+        sys.exit(1)

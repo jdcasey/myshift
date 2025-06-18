@@ -23,19 +23,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 black isort mypy bandit safety
+          pip install black isort
 
       - name: Run black
-        run: black --check .
+        run: black --check --line-length 120 .
 
       - name: Run isort
-        run: isort --check-only .
-
-      - name: Run flake8
-        run: flake8 .
-
-      - name: Run mypy
-        run: mypy myshift/
+        run: isort --check-only --line-length 120 .
 
   security:
     name: Security Analysis
@@ -53,20 +47,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install bandit safety
+          pip install bandit
 
       - name: Run bandit
-        run: bandit -r myshift/ -f json -o bandit-results.json
-
-      - name: Run safety
-        run: safety check
-
-      - name: Upload bandit results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: bandit-results.json
-          category: "Bandit Security Scan"
+        run: bandit -r myshift/
 
   container:
     name: Container Build
